@@ -28,6 +28,9 @@ npm run build
 # Development mode (watch)
 npm run dev
 
+# Generate API types from OpenAPI spec
+OPENAPI_URL=... npm run generate:openapi
+
 # Run tests
 npm test
 

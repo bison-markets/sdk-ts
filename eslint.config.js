@@ -30,6 +30,13 @@ export default [
     },
   },
   {
-    ignores: ['dist/', 'node_modules/', 'coverage/', '*.config.ts', '*.config.js'],
+    ignores: [
+      'dist/',
+      'node_modules/',
+      'coverage/',
+      'src/openapi/generated/',
+      '*.config.ts',
+      '*.config.js',
+    ],
   },
 ];

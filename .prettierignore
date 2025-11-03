@@ -1,6 +1,7 @@
 node_modules/
 dist/
 coverage/
+src/openapi/generated/
 package-lock.json
 *.log
 
