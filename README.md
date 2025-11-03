@@ -41,7 +41,3 @@ npm run format
 # Type check
 npm run typecheck
 ```
-
-## License
-
-ISC

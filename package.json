@@ -10,7 +10,7 @@
     "type": "git",
     "url": "git+https://github.com/bison-markets/sdk-ts.git"
   },
-  "license": "ISC",
+  "license": "AGPL-3.0-only",
   "author": "",
   "type": "module",
   "main": "./dist/index.cjs",
