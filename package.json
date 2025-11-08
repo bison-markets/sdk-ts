@@ -41,7 +41,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit",
-    "generate:openapi": "openapi-typescript ${OPENAPI_URL:-https://api.example.com/openapi.json} --output ./src/openapi/generated/schema.ts",
+    "generate:openapi": "openapi-typescript ${OPENAPI_URL:-http://localhost:8787/openapi} --output ./src/openapi/generated/schema.ts",
     "prepublishOnly": "npm run build"
   },
   "devDependencies": {
@@ -49,6 +49,8 @@
     "@typescript-eslint/eslint-plugin": "^8.13.0",
     "@typescript-eslint/parser": "^8.13.0",
     "eslint": "^9.14.0",
+    "globals": "^16.5.0",
+    "jsdom": "^27.1.0",
     "openapi-typescript": "^7.4.4",
     "prettier": "^3.3.3",
     "tsup": "^8.3.5",
@@ -56,6 +58,10 @@
     "vitest": "^2.1.4"
   },
   "dependencies": {
-    "openapi-fetch": "^0.15.0"
+    "openapi-fetch": "^0.15.0",
+    "viem": "^2.38.6"
+  },
+  "engines": {
+    "node": ">=22.0.0"
   }
 }

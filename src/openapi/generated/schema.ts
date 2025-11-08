@@ -4,7 +4,7 @@
  */
 
 export interface paths {
-    "/": {
+    "/info": {
         parameters: {
             query?: never;
             header?: never;
@@ -20,13 +20,33 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description OK */
+                /** @description System information including contract addresses for all supported chains */
                 200: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": string;
+                        "application/json": {
+                            chains: {
+                                base: {
+                                    /**
+                                     * @description Address of Vault contract
+                                     * @example 0x1234567890123456789012345678901234567890
+                                     */
+                                    vaultAddress: string;
+                                    /**
+                                     * @description Address of USDC token contract
+                                     * @example 0x0987654321098765432109876543210987654321
+                                     */
+                                    usdcAddress: string;
+                                    /**
+                                     * @description RPC URL for the chain
+                                     * @example https://mainnet.base.org
+                                     */
+                                    rpcUrl: string;
+                                };
+                            };
+                        };
                     };
                 };
             };
@@ -39,7 +59,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/get-authorization": {
+    "/get-token-authorization": {
         parameters: {
             query?: never;
             header?: never;
@@ -65,7 +85,7 @@ export interface paths {
                          */
                         chain: "base";
                         /**
-                         * @description ID of the market to buy/sell in
+                         * @description ID of the market to mint/burn in
                          * @example PRES-2024
                          */
                         marketId: string;
@@ -75,16 +95,11 @@ export interface paths {
                          */
                         number: number;
                         /**
-                         * @description Price per contract in cents (1-100)
-                         * @example 75
-                         */
-                        priceUsdCents: number;
-                        /**
-                         * @description Action to execute
-                         * @example buy
+                         * @description Action to execute; one of: mint (mint tokens), burn (burn tokens)
+                         * @example mint
                          * @enum {string}
                          */
-                        action: "buy" | "sell";
+                        action: "mint" | "burn";
                         /**
                          * @description Side of the market (yes or no)
                          * @example yes
@@ -93,7 +108,7 @@ export interface paths {
                         side: "yes" | "no";
                         /**
                          * @description User wallet address
-                         * @example 0x...
+                         * @example 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
                          */
                         userAddress: string;
                     };
@@ -135,7 +150,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/kalshi/market/{ticker}": {
+    "/deposited-balance": {
         parameters: {
             query?: never;
             header?: never;
@@ -144,65 +159,32 @@ export interface paths {
         };
         get: {
             parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description The ticker symbol of the market to get (e.g., KXPREZ-2025-02-01-D) */
-                    ticker: string;
+                query: {
+                    /** @description User wallet address */
+                    userAddress: string;
                 };
+                header?: never;
+                path?: never;
                 cookie?: never;
             };
             requestBody?: never;
             responses: {
-                /** @description Successfully retrieved market information */
+                /** @description Deposited USDC balance retrieved successfully */
                 200: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
                         "application/json": {
-                            market: {
-                                ticker?: string;
-                                series_ticker?: string;
-                                event_ticker?: string;
-                                title?: string;
-                                subtitle?: string;
-                                category?: string;
-                                open_time?: string;
-                                close_time?: string;
-                                expiration_time?: string;
-                                /** @enum {string} */
-                                status?: "initialized" | "active" | "closed" | "settled" | "determined";
-                                yes_bid?: number;
-                                yes_ask?: number;
-                                no_bid?: number;
-                                no_ask?: number;
-                                last_price?: number;
-                                volume?: number;
-                                volume_24h?: number;
-                                liquidity?: number;
-                                open_interest?: number;
-                                /** @enum {string|null} */
-                                result?: "yes" | "no" | "" | null;
-                                can_close_early?: boolean;
-                                cap_count?: number;
-                            };
+                            /** @description User wallet address */
+                            userAddress: string;
+                            /** @description Deposited USDC balance in myrs (1 myr = $0.0001) */
+                            depositedBalanceMyrs: number;
                         };
                     };
                 };
-                /** @description Market not found */
+                /** @description User not found */
                 404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            error: string;
-                        };
-                    };
-                };
-                /** @description Internal server error */
-                500: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -301,7 +283,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/kalshi/portfolio": {
+    "/kalshi/orders": {
         parameters: {
             query?: never;
             header?: never;
@@ -310,9 +292,9 @@ export interface paths {
         };
         get: {
             parameters: {
-                query?: {
-                    /** @description Type of portfolio data to fetch */
-                    type?: "positions" | "balance";
+                query: {
+                    /** @description Ethereum address of the user */
+                    userId: string;
                 };
                 header?: never;
                 path?: never;
@@ -320,21 +302,40 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description Successfully retrieved portfolio data */
+                /** @description Successfully retrieved orders */
                 200: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
                         "application/json": {
-                            positions?: {
-                                ticker: string;
-                                market_ticker?: string;
-                                position: number;
-                                total_cost?: number;
-                                resting_order_count?: number;
+                            orders: {
+                                kalshiOrderId: string;
+                                userId: string;
+                                marketId: string;
+                                /** @enum {string} */
+                                side: "yes" | "no";
+                                /** @enum {string} */
+                                action: "buy" | "sell";
+                                requestedQuantity: number;
+                                filledQuantity: number;
+                                filledMyrs: number;
+                                priceMyrs: number;
+                                chain: string;
+                                createdAt: number;
+                                updatedAt: number;
                             }[];
-                            balance?: number;
+                        };
+                    };
+                };
+                /** @description Invalid request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
                         };
                     };
                 };
@@ -353,6 +354,387 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/get-event": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query: {
+                    /** @description Event ticker to get markets for */
+                    event_ticker: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Successfully retrieved event markets */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            markets: {
+                                ticker: string;
+                                title?: string;
+                                yes_bid_myrs?: number;
+                                yes_ask_myrs?: number;
+                                no_bid_myrs?: number;
+                                no_ask_myrs?: number;
+                                last_price_myrs?: number;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Bad request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Internal server error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/get-event-metadata": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query: {
+                    /** @description Event ticker to get metadata for */
+                    event_ticker: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Successfully retrieved event metadata */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            event: {
+                                event_ticker: string;
+                                title?: string;
+                                sub_title?: string;
+                                category?: string;
+                                series_ticker?: string;
+                                strike_date?: number;
+                                mutually_exclusive?: boolean;
+                                status?: string;
+                                image_url?: string;
+                                settlement_sources?: {
+                                    name?: string;
+                                    url?: string;
+                                }[];
+                                competition?: string;
+                                competition_scope?: string;
+                            };
+                        };
+                    };
+                };
+                /** @description Bad request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Event not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Internal server error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/kalshi/order/limit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        /**
+                         * @description Chain to execute the action on; one of: base
+                         * @example base
+                         * @enum {string}
+                         */
+                        chain: "base";
+                        /**
+                         * @description ID of the market to buy/sell in
+                         * @example PRES-2024
+                         */
+                        marketId: string;
+                        /**
+                         * @description Number of contracts
+                         * @example 100
+                         */
+                        number: number;
+                        /**
+                         * @description Price per contract in myrs (1-10000)
+                         * @example 7500
+                         */
+                        priceMyrs: number;
+                        /**
+                         * @description Action to execute
+                         * @example buy
+                         * @enum {string}
+                         */
+                        action: "buy" | "sell";
+                        /**
+                         * @description Side of the market (yes or no)
+                         * @example yes
+                         * @enum {string}
+                         */
+                        side: "yes" | "no";
+                        /**
+                         * @description User wallet address
+                         * @example 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
+                         */
+                        userAddress: string;
+                        /**
+                         * @description EIP-712 signature from the user authorizing the order
+                         * @example 0x...
+                         */
+                        signature: string;
+                        /**
+                         * @description Unix timestamp when the authorization expires
+                         * @example 1234567890
+                         */
+                        expiry: number;
+                    };
+                };
+            };
+            responses: {
+                /** @description Order placed successfully */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            success: boolean;
+                            orderId: string;
+                            status: string;
+                            message?: string;
+                        };
+                    };
+                };
+                /** @description Bad request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Failed */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/events/kalshi/enqueue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        type: "order_filled";
+                        orderId: string;
+                        tradeId?: string;
+                        marketId: string;
+                        /** @enum {string} */
+                        action: "buy" | "sell";
+                        /** @enum {string} */
+                        side: "yes" | "no";
+                        number: number;
+                        priceUsdMyrs: number;
+                    } | {
+                        /** @enum {string} */
+                        type: "order_placed";
+                        orderId: string;
+                        tradeId?: string;
+                        marketId: string;
+                        /** @enum {string} */
+                        action: "buy" | "sell";
+                        /** @enum {string} */
+                        side: "yes" | "no";
+                        number: number;
+                        priceUsdMyrs: number;
+                    } | {
+                        /** @enum {string} */
+                        type: "order_cancelled";
+                        orderId: string;
+                        tradeId?: string;
+                        marketId: string;
+                        /** @enum {string} */
+                        action: "buy" | "sell";
+                        /** @enum {string} */
+                        side: "yes" | "no";
+                        number: number;
+                        priceUsdMyrs: number;
+                    } | {
+                        /** @enum {string} */
+                        type: "market_settled";
+                        marketId: string;
+                        /** @enum {string} */
+                        result?: "yes" | "no";
+                    } | {
+                        /** @enum {string} */
+                        type: "market_closed";
+                        marketId: string;
+                        /** @enum {string} */
+                        result?: "yes" | "no";
+                    } | {
+                        /** @enum {string} */
+                        type: "market_opened";
+                        marketId: string;
+                        /** @enum {string} */
+                        result?: "yes" | "no";
+                    };
+                };
+            };
+            responses: {
+                /** @description Kalshi event enqueued successfully */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            success: boolean;
+                            message: string;
+                        };
+                    };
+                };
+                /** @description Invalid event payload */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
