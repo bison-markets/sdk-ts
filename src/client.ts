@@ -1,4 +1,7 @@
 import { createBisonOAPIClient, OpenAPIPaths } from './openapi';
+import type { WalletClient, PublicClient } from 'viem';
+import { parseUnits, maxUint256 } from 'viem';
+import { VAULT_ABI, ERC20_ABI } from './constants';
 
 export interface BisonClientOptions {
   baseUrl: string;
@@ -61,6 +64,12 @@ export type GetInfoResponse =
 
 export type GetDepositedUsdcBalanceResponse =
   OpenAPIPaths['/deposited-balance']['get']['responses']['200']['content']['application/json'];
+
+export type GetUserOrdersResponse =
+  OpenAPIPaths['/kalshi/orders']['get']['responses']['200']['content']['application/json'];
+
+export type GetUserPositionsResponse =
+  OpenAPIPaths['/kalshi/positions']['get']['responses']['200']['content']['application/json'];
 
 export interface KalshiTickerUpdate {
   market_ticker: string;
@@ -175,6 +184,40 @@ export class BisonClient {
       throw new Error('Failed to get deposited USDC balance');
     } else if (typeof data === 'undefined') {
       throw new Error('No data returned from getDepositedUsdcBalance');
+    }
+
+    return data;
+  }
+
+  async getUserOrders(userId: string): Promise<GetUserOrdersResponse> {
+    const { data, error } = await this.client.GET('/kalshi/orders', {
+      params: {
+        query: { userId },
+      },
+    });
+
+    if (error?.error) {
+      throw new Error((error as { error?: string }).error ?? 'Failed to get user orders');
+    } else if (!data) {
+      throw new Error('No data returned from getUserOrders');
+    }
+
+    return data;
+  }
+
+  async getUserPositions(userId: string): Promise<GetUserPositionsResponse> {
+    const { data, error } = await this.client.GET('/kalshi/positions', {
+      params: {
+        query: { userId },
+      },
+    });
+
+    if (error?.error) {
+      throw new Error((error as { error?: string }).error ?? 'Failed to get user positions');
+    }
+
+    if (typeof data === 'undefined') {
+      throw new Error('No data returned from getUserPositions');
     }
 
     return data;
@@ -369,6 +412,366 @@ export class BisonClient {
         this.eventWs = null;
       }
     };
+  }
+
+  async executeBuyFlow(params: {
+    walletClient: WalletClient;
+    publicClient: PublicClient;
+    userAddress: `0x${string}`;
+    chain: string;
+    vaultAddress: `0x${string}`;
+    marketId: string;
+    side: 'yes' | 'no';
+    number: number;
+    priceUsdMyrs: number;
+    onEvent?: (event: BisonEvent) => void;
+    onError?: (error: Error) => void;
+  }): Promise<{ disconnect: () => void; txHash: `0x${string}` | null }> {
+    const {
+      walletClient,
+      userAddress,
+      chain,
+      vaultAddress,
+      marketId,
+      side,
+      number,
+      priceUsdMyrs,
+      onEvent,
+      onError,
+    } = params;
+
+    const chainId = walletClient.chain?.id ?? 31337;
+    const expiry = Math.floor(Date.now() / 1000) + 600;
+
+    const domain = {
+      name: 'BisonOrderAuth',
+      version: '1',
+      chainId,
+      verifyingContract: vaultAddress,
+    } as const;
+
+    const types = {
+      OrderAuthorization: [
+        { name: 'marketId', type: 'string' },
+        { name: 'action', type: 'string' },
+        { name: 'side', type: 'string' },
+        { name: 'number', type: 'uint256' },
+        { name: 'priceMyrs', type: 'uint256' },
+        { name: 'expiry', type: 'uint256' },
+      ],
+    } as const;
+
+    const message = {
+      marketId,
+      action: 'buy',
+      side,
+      number: BigInt(number),
+      priceMyrs: BigInt(priceUsdMyrs),
+      expiry: BigInt(expiry),
+    };
+
+    const signature = await walletClient.signTypedData({
+      account: userAddress,
+      domain,
+      types,
+      primaryType: 'OrderAuthorization',
+      message,
+    });
+
+    const orderResult = await this.placeOrder({
+      chain: chain as 'base',
+      marketId,
+      number,
+      priceMyrs: priceUsdMyrs,
+      action: 'buy',
+      side,
+      userAddress,
+      signature,
+      expiry,
+    });
+
+    console.log('✓ Order placed:', orderResult);
+
+    const disconnect = this.listen(
+      userAddress,
+      (event: BisonEvent) => {
+        console.log('Buy flow event:', event);
+        onEvent?.(event);
+      },
+      {
+        ...(onError && { onError }),
+        reconnect: true,
+      },
+    );
+
+    return { disconnect, txHash: null };
+  }
+
+  async executeSellFlow(params: {
+    walletClient: WalletClient;
+    publicClient: PublicClient;
+    userAddress: `0x${string}`;
+    chain: string;
+    vaultAddress: `0x${string}`;
+    marketId: string;
+    side: 'yes' | 'no';
+    number: number;
+    priceUsdMyrs: number;
+    onEvent?: (event: BisonEvent) => void;
+    onError?: (error: Error) => void;
+  }): Promise<{ disconnect: () => void; txHash: `0x${string}` | null }> {
+    const {
+      walletClient,
+      userAddress,
+      chain,
+      vaultAddress,
+      marketId,
+      side,
+      number,
+      priceUsdMyrs,
+      onEvent,
+      onError,
+    } = params;
+
+    const chainId = walletClient.chain?.id ?? 31337;
+    const expiry = Math.floor(Date.now() / 1000) + 600;
+
+    const domain = {
+      name: 'BisonOrderAuth',
+      version: '1',
+      chainId,
+      verifyingContract: vaultAddress,
+    } as const;
+
+    const types = {
+      OrderAuthorization: [
+        { name: 'marketId', type: 'string' },
+        { name: 'action', type: 'string' },
+        { name: 'side', type: 'string' },
+        { name: 'number', type: 'uint256' },
+        { name: 'priceMyrs', type: 'uint256' },
+        { name: 'expiry', type: 'uint256' },
+      ],
+    } as const;
+
+    const message = {
+      marketId,
+      action: 'sell',
+      side,
+      number: BigInt(number),
+      priceMyrs: BigInt(priceUsdMyrs),
+      expiry: BigInt(expiry),
+    };
+
+    const signature = await walletClient.signTypedData({
+      account: userAddress,
+      domain,
+      types,
+      primaryType: 'OrderAuthorization',
+      message,
+    });
+
+    const orderResult = await this.placeOrder({
+      chain: chain as 'base',
+      marketId,
+      number,
+      priceMyrs: priceUsdMyrs,
+      action: 'sell',
+      side,
+      userAddress,
+      signature,
+      expiry,
+    });
+
+    console.log('✓ Order placed:', orderResult);
+
+    const disconnect = this.listen(
+      userAddress,
+      (event: BisonEvent) => {
+        console.log('Sell flow event:', event);
+        onEvent?.(event);
+      },
+      {
+        ...(onError && { onError }),
+        reconnect: true,
+      },
+    );
+
+    return { disconnect, txHash: null };
+  }
+
+  async executeMintFlow(params: {
+    walletClient: WalletClient;
+    publicClient: PublicClient;
+    userAddress: `0x${string}`;
+    chain: string;
+    vaultAddress: `0x${string}`;
+    marketId: string;
+    side: 'yes' | 'no';
+    number: number;
+  }): Promise<{ txHash: `0x${string}` }> {
+    const { walletClient, publicClient, userAddress, chain, vaultAddress, marketId, side, number } =
+      params;
+
+    const auth = await this.getTokenAuthorization({
+      chain: chain as 'base',
+      marketId,
+      number,
+      action: 'mint',
+      side,
+      userAddress,
+    });
+
+    const mintTxHash = await walletClient.writeContract({
+      address: vaultAddress,
+      abi: VAULT_ABI,
+      functionName: 'mintPosition',
+      args: [
+        auth.uuid,
+        marketId,
+        side === 'yes',
+        BigInt(number),
+        BigInt(auth.expiresAt),
+        auth.signature as `0x${string}`,
+      ],
+      account: userAddress,
+      chain: walletClient.chain,
+    });
+
+    await publicClient.waitForTransactionReceipt({ hash: mintTxHash });
+
+    console.log('✓ Tokens minted');
+
+    return { txHash: mintTxHash };
+  }
+
+  async executeBurnFlow(params: {
+    walletClient: WalletClient;
+    publicClient: PublicClient;
+    userAddress: `0x${string}`;
+    chain: string;
+    vaultAddress: `0x${string}`;
+    marketId: string;
+    side: 'yes' | 'no';
+    number: number;
+  }): Promise<{ txHash: `0x${string}` }> {
+    const { walletClient, publicClient, userAddress, chain, vaultAddress, marketId, side, number } =
+      params;
+
+    const auth = await this.getTokenAuthorization({
+      chain: chain as 'base',
+      marketId,
+      number,
+      action: 'burn',
+      side,
+      userAddress,
+    });
+
+    const burnTxHash = await walletClient.writeContract({
+      address: vaultAddress,
+      abi: VAULT_ABI,
+      functionName: 'burnMarketPosition',
+      args: [
+        auth.uuid,
+        marketId,
+        side === 'yes',
+        userAddress,
+        BigInt(number),
+        BigInt(auth.expiresAt),
+        auth.signature as `0x${string}`,
+      ],
+      account: userAddress,
+      chain: walletClient.chain,
+    });
+
+    await publicClient.waitForTransactionReceipt({ hash: burnTxHash });
+
+    console.log('✓ Tokens burned');
+
+    return { txHash: burnTxHash };
+  }
+
+  async executeDepositFlow(params: {
+    walletClient: WalletClient;
+    publicClient: PublicClient;
+    userAddress: `0x${string}`;
+    vaultAddress: `0x${string}`;
+    usdcAddress: `0x${string}`;
+    amount: number;
+  }): Promise<`0x${string}`> {
+    const { walletClient, publicClient, userAddress, vaultAddress, usdcAddress, amount } = params;
+
+    console.log('Deposit flow starting:', { userAddress, vaultAddress, usdcAddress, amount });
+    console.log('WalletClient chain:', walletClient.chain);
+
+    const usdcAmount = parseUnits(String(amount), 6);
+
+    const allowance = await publicClient.readContract({
+      address: usdcAddress,
+      abi: ERC20_ABI,
+      functionName: 'allowance',
+      args: [userAddress, vaultAddress],
+    });
+
+    console.log('Current allowance:', allowance.toString(), 'Need:', usdcAmount.toString());
+
+    if (allowance < usdcAmount) {
+      console.log('Requesting approval...');
+      const hash = await walletClient.writeContract({
+        address: usdcAddress,
+        abi: ERC20_ABI,
+        functionName: 'approve',
+        args: [vaultAddress, maxUint256],
+        account: userAddress,
+        chain: walletClient.chain,
+      });
+      console.log('Approve tx hash:', hash);
+      await publicClient.waitForTransactionReceipt({ hash });
+      console.log('Approval confirmed');
+    }
+
+    console.log('Requesting deposit...');
+    const txHash = await walletClient.writeContract({
+      address: vaultAddress,
+      abi: VAULT_ABI,
+      functionName: 'depositUSDC',
+      args: [usdcAmount],
+      account: userAddress,
+      chain: walletClient.chain,
+    });
+    console.log('Deposit tx hash:', txHash);
+    await publicClient.waitForTransactionReceipt({ hash: txHash });
+    console.log('Deposit confirmed');
+    return txHash;
+  }
+
+  async executeWithdrawFlow(params: {
+    walletClient: WalletClient;
+    publicClient: PublicClient;
+    userAddress: `0x${string}`;
+    vaultAddress: `0x${string}`;
+    amount: number;
+  }): Promise<`0x${string}`> {
+    const { walletClient, publicClient, userAddress, vaultAddress, amount } = params;
+
+    console.log('Withdraw flow starting:', { userAddress, vaultAddress, amount });
+    console.log('WalletClient chain:', walletClient.chain);
+
+    const usdcAmount = parseUnits(String(amount), 6);
+
+    console.log('Requesting withdraw...');
+    const txHash = await walletClient.writeContract({
+      address: vaultAddress,
+      abi: VAULT_ABI,
+      functionName: 'withdrawUSDC',
+      args: [usdcAmount],
+      account: userAddress,
+      chain: walletClient.chain,
+    });
+    console.log('Withdraw tx hash:', txHash);
+    await publicClient.waitForTransactionReceipt({ hash: txHash });
+    console.log('Withdraw confirmed');
+    return txHash;
   }
 }
 
