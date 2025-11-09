@@ -600,6 +600,63 @@ export class BisonClient {
     return { disconnect, txHash: null };
   }
 
+  async executeCancelOrderFlow(params: {
+    walletClient: WalletClient;
+    userAddress: `0x${string}`;
+    chain: string;
+    vaultAddress: `0x${string}`;
+    orderId: string;
+  }): Promise<void> {
+    const { walletClient, userAddress, chain, vaultAddress, orderId } = params;
+
+    const chainId = walletClient.chain?.id ?? 31337;
+    const expiry = Math.floor(Date.now() / 1000) + 600;
+
+    const domain = {
+      name: 'BisonOrderAuth',
+      version: '1',
+      chainId,
+      verifyingContract: vaultAddress,
+    } as const;
+
+    const types = {
+      OrderCancellation: [
+        { name: 'orderId', type: 'string' },
+        { name: 'expiry', type: 'uint256' },
+      ],
+    } as const;
+
+    const message = {
+      orderId,
+      expiry: BigInt(expiry),
+    };
+
+    const signature = await walletClient.signTypedData({
+      account: userAddress,
+      domain,
+      types,
+      primaryType: 'OrderCancellation',
+      message,
+    });
+
+    const { data, error } = await this.client.POST('/kalshi/order/cancel', {
+      body: {
+        chain: chain as 'base',
+        orderId,
+        userAddress,
+        signature,
+        expiry,
+      },
+    });
+
+    if (error?.error) {
+      const errorMsg = (error as { error?: string }).error ?? 'Failed to cancel order';
+      throw new Error(errorMsg);
+    }
+
+    console.log('✓ Order cancellation requested:', data);
+  }
+
   async executeMintFlow(params: {
     walletClient: WalletClient;
     publicClient: PublicClient;

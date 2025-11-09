@@ -460,6 +460,8 @@ export interface paths {
                             markets: {
                                 ticker: string;
                                 title?: string;
+                                /** @enum {string} */
+                                status?: "initialized" | "active" | "closed" | "settled" | "determined";
                                 yes_bid_myrs?: number;
                                 yes_ask_myrs?: number;
                                 no_bid_myrs?: number;
@@ -705,6 +707,120 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/kalshi/order/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        /**
+                         * @description Chain to execute the action on; one of: base
+                         * @example base
+                         * @enum {string}
+                         */
+                        chain: "base";
+                        /**
+                         * @description Kalshi order ID to cancel
+                         * @example abc123
+                         */
+                        orderId: string;
+                        /**
+                         * @description User wallet address
+                         * @example 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
+                         */
+                        userAddress: string;
+                        /**
+                         * @description EIP-712 signature from the user authorizing the cancellation
+                         * @example 0x...
+                         */
+                        signature: string;
+                        /**
+                         * @description Unix timestamp when the authorization expires
+                         * @example 1234567890
+                         */
+                        expiry: number;
+                    };
+                };
+            };
+            responses: {
+                /** @description Order cancelled successfully */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            success: boolean;
+                            orderId: string;
+                            message?: string;
+                        };
+                    };
+                };
+                /** @description Bad request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Forbidden - order does not belong to user */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Order not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Failed */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/events/kalshi/enqueue": {
         parameters: {
             query?: never;
@@ -726,30 +842,6 @@ export interface paths {
                     "application/json": {
                         /** @enum {string} */
                         type: "order_filled";
-                        orderId: string;
-                        tradeId?: string;
-                        marketId: string;
-                        /** @enum {string} */
-                        action: "buy" | "sell";
-                        /** @enum {string} */
-                        side: "yes" | "no";
-                        number: number;
-                        priceUsdMyrs: number;
-                    } | {
-                        /** @enum {string} */
-                        type: "order_placed";
-                        orderId: string;
-                        tradeId?: string;
-                        marketId: string;
-                        /** @enum {string} */
-                        action: "buy" | "sell";
-                        /** @enum {string} */
-                        side: "yes" | "no";
-                        number: number;
-                        priceUsdMyrs: number;
-                    } | {
-                        /** @enum {string} */
-                        type: "order_cancelled";
                         orderId: string;
                         tradeId?: string;
                         marketId: string;
