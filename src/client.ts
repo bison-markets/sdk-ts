@@ -1,3 +1,4 @@
+import 'viem/window';
 import { createBisonOAPIClient, OpenAPIPaths } from './openapi';
 import type { WalletClient, PublicClient } from 'viem';
 import { parseUnits, maxUint256 } from 'viem';
@@ -70,6 +71,9 @@ export type GetUserOrdersResponse =
 
 export type GetUserPositionsResponse =
   OpenAPIPaths['/kalshi/positions']['get']['responses']['200']['content']['application/json'];
+
+export type GetCreatedTokensResponse =
+  OpenAPIPaths['/created-tokens']['get']['responses']['200']['content']['application/json'];
 
 export interface KalshiTickerUpdate {
   market_ticker: string;
@@ -218,6 +222,24 @@ export class BisonClient {
 
     if (typeof data === 'undefined') {
       throw new Error('No data returned from getUserPositions');
+    }
+
+    return data;
+  }
+
+  async getCreatedTokens(chain?: 'base'): Promise<GetCreatedTokensResponse> {
+    const { data, error } = await this.client.GET(
+      '/created-tokens',
+      chain ? { params: { query: { chain } } } : {},
+    );
+
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    if (error) {
+      throw new Error('Failed to get created tokens');
+    }
+
+    if (typeof data === 'undefined') {
+      throw new Error('No data returned from getCreatedTokens');
     }
 
     return data;
@@ -692,7 +714,7 @@ export class BisonClient {
         auth.signature as `0x${string}`,
       ],
       account: userAddress,
-      chain: walletClient.chain,
+      chain: null,
     });
 
     await publicClient.waitForTransactionReceipt({ hash: mintTxHash });
@@ -738,7 +760,7 @@ export class BisonClient {
         auth.signature as `0x${string}`,
       ],
       account: userAddress,
-      chain: walletClient.chain,
+      chain: null,
     });
 
     await publicClient.waitForTransactionReceipt({ hash: burnTxHash });
@@ -780,7 +802,7 @@ export class BisonClient {
         functionName: 'approve',
         args: [vaultAddress, maxUint256],
         account: userAddress,
-        chain: walletClient.chain,
+        chain: null,
       });
       console.log('Approve tx hash:', hash);
       await publicClient.waitForTransactionReceipt({ hash });
@@ -794,7 +816,7 @@ export class BisonClient {
       functionName: 'depositUSDC',
       args: [usdcAmount],
       account: userAddress,
-      chain: walletClient.chain,
+      chain: null,
     });
     console.log('Deposit tx hash:', txHash);
     await publicClient.waitForTransactionReceipt({ hash: txHash });
@@ -823,12 +845,88 @@ export class BisonClient {
       functionName: 'withdrawUSDC',
       args: [usdcAmount],
       account: userAddress,
-      chain: walletClient.chain,
+      chain: null,
     });
     console.log('Withdraw tx hash:', txHash);
     await publicClient.waitForTransactionReceipt({ hash: txHash });
     console.log('Withdraw confirmed');
     return txHash;
+  }
+
+  async getPositionTokenAddress(params: {
+    publicClient: PublicClient;
+    vaultAddress: `0x${string}`;
+    marketId: string;
+    side: 'yes' | 'no';
+  }): Promise<`0x${string}` | null> {
+    const { publicClient, vaultAddress, marketId, side } = params;
+
+    const tokenAddress = await publicClient.readContract({
+      address: vaultAddress,
+      abi: VAULT_ABI,
+      functionName: 'getPositionToken',
+      args: [marketId, side === 'yes'],
+    });
+
+    if (tokenAddress === '0x0000000000000000000000000000000000000000') {
+      return null;
+    }
+
+    return tokenAddress;
+  }
+
+  async getTokenBalance(params: {
+    publicClient: PublicClient;
+    tokenAddress: `0x${string}`;
+    userAddress: `0x${string}`;
+  }): Promise<bigint> {
+    const { publicClient, tokenAddress, userAddress } = params;
+
+    const balance = await publicClient.readContract({
+      address: tokenAddress,
+      abi: ERC20_ABI,
+      functionName: 'balanceOf',
+      args: [userAddress],
+    });
+
+    return balance;
+  }
+
+  async addTokenToWallet(params: {
+    tokenAddress: `0x${string}`;
+    marketId: string;
+    side: 'yes' | 'no';
+  }): Promise<boolean> {
+    const { tokenAddress, marketId, side } = params;
+
+    if (typeof window === 'undefined') {
+      throw new Error('Cannot add token in non-browser environment');
+    }
+
+    if (!window.ethereum) {
+      throw new Error(
+        'No Ethereum wallet detected. Please install MetaMask or another web3 wallet.',
+      );
+    }
+
+    try {
+      const result = await window.ethereum.request({
+        method: 'wallet_watchAsset',
+        params: {
+          type: 'ERC20',
+          options: {
+            address: tokenAddress,
+            symbol: `${marketId.slice(0, 7).replace(/-+$/, '')}-${side === 'yes' ? 'Y' : 'N'}`,
+            decimals: 0,
+          },
+        },
+      });
+
+      return result;
+    } catch (error) {
+      console.error('Failed to add token to wallet:', error);
+      throw error;
+    }
   }
 }
 

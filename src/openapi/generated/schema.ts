@@ -44,6 +44,11 @@ export interface paths {
                                      * @example https://mainnet.base.org
                                      */
                                     rpcUrl: string;
+                                    /**
+                                     * @description Chain ID
+                                     * @example 8453
+                                     */
+                                    chainId: number;
                                 };
                             };
                         };
@@ -191,6 +196,53 @@ export interface paths {
                     content: {
                         "application/json": {
                             error: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/created-tokens": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Filter by chain; defaults to all chains */
+                    chain?: "base";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Successfully retrieved created tokens */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            tokens: {
+                                marketId: string;
+                                /** @enum {string} */
+                                side: "yes" | "no";
+                                chain: string;
+                                tokenAddress: string;
+                                createdAt: number;
+                            }[];
                         };
                     };
                 };

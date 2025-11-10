@@ -43,6 +43,16 @@ export const VAULT_ABI = [
     outputs: [],
   },
   {
+    name: 'getPositionToken',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [
+      { name: 'marketId', type: 'string' },
+      { name: 'yes', type: 'bool' },
+    ],
+    outputs: [{ type: 'address' }],
+  },
+  {
     name: 'DOMAIN_SEPARATOR',
     type: 'function',
     stateMutability: 'view',

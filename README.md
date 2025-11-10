@@ -8,6 +8,11 @@ TypeScript SDK for Bison Markets.
 npm install bison-sdk-ts
 ```
 
+**Requirements:**
+
+- Node.js >= 22 (for native WebSocket support)
+- All modern browsers
+
 ## Usage
 
 ```typescript
