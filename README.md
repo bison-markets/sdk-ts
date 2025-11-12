@@ -39,14 +39,14 @@ const publicClient = createPublicClient({
   transport: http(),
 });
 
-// Deposit 100 USDC into the vault
+// Deposit 100 USDC into the vault (100 * 10^6 µUSDC)
 const txHash = await client.executeDepositFlow({
   walletClient,
   publicClient,
   userAddress: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266',
   vaultAddress: '0x1234567890123456789012345678901234567890',
   usdcAddress: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', // Base USDC
-  amount: 100,
+  amountUusdc: 100_000_000, // 100 USDC
 });
 
 console.log('Deposited! Transaction:', txHash);

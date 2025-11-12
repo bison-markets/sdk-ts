@@ -1,7 +1,7 @@
 import 'viem/window';
 import { createBisonOAPIClient, OpenAPIPaths } from './openapi';
 import type { WalletClient, PublicClient } from 'viem';
-import { parseUnits, maxUint256 } from 'viem';
+import { maxUint256 } from 'viem';
 import { VAULT_ABI, ERC20_ABI } from './constants';
 
 export interface BisonClientOptions {
@@ -803,14 +803,15 @@ export class BisonClient {
     userAddress: `0x${string}`;
     vaultAddress: `0x${string}`;
     usdcAddress: `0x${string}`;
-    amount: number;
+    amountUusdc: number;
   }): Promise<`0x${string}`> {
-    const { walletClient, publicClient, userAddress, vaultAddress, usdcAddress, amount } = params;
+    const { walletClient, publicClient, userAddress, vaultAddress, usdcAddress, amountUusdc } =
+      params;
 
-    console.log('Deposit flow starting:', { userAddress, vaultAddress, usdcAddress, amount });
+    console.log('Deposit flow starting:', { userAddress, vaultAddress, usdcAddress, amountUusdc });
     console.log('WalletClient chain:', walletClient.chain);
 
-    const usdcAmount = parseUnits(String(amount), 6);
+    const usdcAmount = BigInt(amountUusdc);
 
     const allowance = await publicClient.readContract({
       address: usdcAddress,
@@ -857,15 +858,14 @@ export class BisonClient {
     userAddress: `0x${string}`;
     chain: string;
     vaultAddress: `0x${string}`;
-    amount: number;
+    amountUusdc: number;
   }): Promise<`0x${string}`> {
-    const { walletClient, publicClient, userAddress, chain, vaultAddress, amount } = params;
+    const { walletClient, publicClient, userAddress, chain, vaultAddress, amountUusdc } = params;
 
-    console.log('Withdraw flow starting:', { userAddress, vaultAddress, amount });
+    console.log('Withdraw flow starting:', { userAddress, vaultAddress, amountUusdc });
     console.log('WalletClient chain:', walletClient.chain);
 
-    // Convert user input (USDC) to USDC base units (6 decimals = µUSDC)
-    const amountUsdcBaseUnits = parseUnits(String(amount), 6);
+    const amountUsdcBaseUnits = BigInt(amountUusdc);
     const chainParsed = chain as 'base';
 
     console.log('Getting withdraw authorization from API...');
@@ -881,9 +881,8 @@ export class BisonClient {
 
     const maxWithdrawAmountBigInt = BigInt(maxWithdrawAmount);
     if (amountUsdcBaseUnits > maxWithdrawAmountBigInt) {
-      const maxUsdcAmount = Number(maxWithdrawAmountBigInt) / 1_000_000;
       throw new Error(
-        `Requested withdraw amount (${String(amount)} USDC) exceeds maximum allowed (${String(maxUsdcAmount)} USDC)`,
+        `Requested withdraw amount (${String(amountUusdc)} µUSDC) exceeds maximum allowed (${String(maxWithdrawAmount)} µUSDC)`,
       );
     }
 
