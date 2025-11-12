@@ -155,6 +155,88 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/get-withdraw-authorization": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        /**
+                         * @description Chain to execute the action on; one of: base
+                         * @example base
+                         * @enum {string}
+                         */
+                        chain: "base";
+                        /**
+                         * @description User wallet address
+                         * @example 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
+                         */
+                        userAddress: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Withdraw authorization generated successfully */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @description Unique authorization ID */
+                            uuid: string;
+                            /** @description EIP-712 signature for the authorization */
+                            signature: string;
+                            /** @description Unix timestamp when authorization expires */
+                            expiresAt: number;
+                            /** @description Maximum amount user can withdraw in myrs (1 myr = $0.0001) */
+                            maxWithdrawAmount: number;
+                        };
+                    };
+                };
+                /** @description Bad request - no deposited balance to withdraw */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Failed */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/deposited-balance": {
         parameters: {
             query?: never;
@@ -856,89 +938,6 @@ export interface paths {
                 };
                 /** @description Failed */
                 500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            error: string;
-                        };
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/events/kalshi/enqueue": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: {
-                content: {
-                    "application/json": {
-                        /** @enum {string} */
-                        type: "order_filled";
-                        orderId: string;
-                        tradeId?: string;
-                        marketId: string;
-                        /** @enum {string} */
-                        action: "buy" | "sell";
-                        /** @enum {string} */
-                        side: "yes" | "no";
-                        number: number;
-                        priceUsdMyrs: number;
-                    } | {
-                        /** @enum {string} */
-                        type: "market_settled";
-                        marketId: string;
-                        /** @enum {string} */
-                        result?: "yes" | "no";
-                    } | {
-                        /** @enum {string} */
-                        type: "market_closed";
-                        marketId: string;
-                        /** @enum {string} */
-                        result?: "yes" | "no";
-                    } | {
-                        /** @enum {string} */
-                        type: "market_opened";
-                        marketId: string;
-                        /** @enum {string} */
-                        result?: "yes" | "no";
-                    };
-                };
-            };
-            responses: {
-                /** @description Kalshi event enqueued successfully */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            success: boolean;
-                            message: string;
-                        };
-                    };
-                };
-                /** @description Invalid event payload */
-                400: {
                     headers: {
                         [name: string]: unknown;
                     };

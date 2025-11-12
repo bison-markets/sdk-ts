@@ -10,7 +10,12 @@ export const VAULT_ABI = [
     name: 'withdrawUSDC',
     type: 'function',
     stateMutability: 'nonpayable',
-    inputs: [{ name: 'usdcAmount', type: 'uint256' }],
+    inputs: [
+      { name: 'uuid', type: 'string' },
+      { name: 'usdcAmount', type: 'uint256' },
+      { name: 'expiry', type: 'uint256' },
+      { name: 'signature', type: 'bytes' },
+    ],
     outputs: [],
   },
   {

@@ -53,6 +53,13 @@ export type GetTokenAuthorizationRequest = NonNullable<
 export type GetTokenAuthorizationResponse =
   OpenAPIPaths['/get-token-authorization']['post']['responses']['200']['content']['application/json'];
 
+export type GetWithdrawAuthorizationRequest = NonNullable<
+  OpenAPIPaths['/get-withdraw-authorization']['post']['requestBody']
+>['content']['application/json'];
+
+export type GetWithdrawAuthorizationResponse =
+  OpenAPIPaths['/get-withdraw-authorization']['post']['responses']['200']['content']['application/json'];
+
 export type PlaceOrderRequest = NonNullable<
   OpenAPIPaths['/kalshi/order/limit']['post']['requestBody']
 >['content']['application/json'];
@@ -117,6 +124,26 @@ export class BisonClient {
     if (error) {
       const errorMsg = (error as { error?: string }).error ?? 'Failed to get token authorization';
       throw new Error(errorMsg);
+    } else if (typeof data === 'undefined') {
+      throw new Error('No data returned from getTokenAuthorization');
+    }
+
+    return data;
+  }
+
+  async getWithdrawAuthorization(
+    options: GetWithdrawAuthorizationRequest,
+  ): Promise<GetWithdrawAuthorizationResponse> {
+    const { data, error } = await this.client.POST('/get-withdraw-authorization', {
+      body: options,
+    });
+
+    if (typeof error !== 'undefined') {
+      const errorMsg =
+        (error as { error?: string }).error ?? 'Failed to get withdraw authorization';
+      throw new Error(errorMsg);
+    } else if (typeof data === 'undefined') {
+      throw new Error('No data returned from getWithdrawAuthorization');
     }
 
     return data;
@@ -130,6 +157,8 @@ export class BisonClient {
     if (error) {
       const errorMsg = (error as { error?: string }).error ?? 'Failed to place order';
       throw new Error(errorMsg);
+    } else if (typeof data === 'undefined') {
+      throw new Error('No data returned from placeOrder');
     }
 
     return data;
@@ -161,6 +190,8 @@ export class BisonClient {
     if (error) {
       const errorMsg = (error as { error?: string }).error ?? 'Failed to get event metadata';
       throw new Error(errorMsg);
+    } else if (typeof data === 'undefined') {
+      throw new Error('No data returned from getEventMetadata');
     }
 
     return data;
@@ -169,9 +200,10 @@ export class BisonClient {
   async getInfo(): Promise<GetInfoResponse> {
     const { data, error } = await this.client.GET('/info');
 
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    if (error) {
-      throw new Error('Failed to get system info');
+    if (typeof error !== 'undefined') {
+      throw new Error('Failed to get system info: ', error);
+    } else if (typeof data === 'undefined') {
+      throw new Error('No data returned from getInfo');
     }
 
     return data;
@@ -218,9 +250,7 @@ export class BisonClient {
 
     if (error?.error) {
       throw new Error((error as { error?: string }).error ?? 'Failed to get user positions');
-    }
-
-    if (typeof data === 'undefined') {
+    } else if (typeof data === 'undefined') {
       throw new Error('No data returned from getUserPositions');
     }
 
@@ -233,12 +263,9 @@ export class BisonClient {
       chain ? { params: { query: { chain } } } : {},
     );
 
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    if (error) {
-      throw new Error('Failed to get created tokens');
-    }
-
-    if (typeof data === 'undefined') {
+    if (typeof error !== 'undefined') {
+      throw new Error('Failed to get created tokens: ', error);
+    } else if (typeof data === 'undefined') {
       throw new Error('No data returned from getCreatedTokens');
     }
 
@@ -828,22 +855,47 @@ export class BisonClient {
     walletClient: WalletClient;
     publicClient: PublicClient;
     userAddress: `0x${string}`;
+    chain: string;
     vaultAddress: `0x${string}`;
     amount: number;
   }): Promise<`0x${string}`> {
-    const { walletClient, publicClient, userAddress, vaultAddress, amount } = params;
+    const { walletClient, publicClient, userAddress, chain, vaultAddress, amount } = params;
 
     console.log('Withdraw flow starting:', { userAddress, vaultAddress, amount });
     console.log('WalletClient chain:', walletClient.chain);
 
-    const usdcAmount = parseUnits(String(amount), 6);
+    // Convert user input (USDC) to USDC base units (6 decimals)
+    const amountUsdcBaseUnits = parseUnits(String(amount), 6);
+    // Convert to myrs for comparison with API response (1 USDC = 10,000 myrs)
+    const amountMyrs = amountUsdcBaseUnits / 100n;
+    const chainParsed = chain as 'base';
+
+    console.log('Getting withdraw authorization from API...');
+    const { uuid, signature, expiresAt, maxWithdrawAmount } = await this.getWithdrawAuthorization({
+      chain: chainParsed,
+      userAddress,
+    });
+
+    console.log('Withdraw authorization received:', {
+      maxWithdrawAmount,
+      expiresAt,
+    });
+
+    const maxWithdrawAmountBigInt = BigInt(maxWithdrawAmount);
+    if (amountMyrs > maxWithdrawAmountBigInt) {
+      const maxUsdcAmount = Number(maxWithdrawAmountBigInt) / 10000;
+      throw new Error(
+        `Requested withdraw amount (${String(amount)} USDC) exceeds maximum allowed (${String(maxUsdcAmount)} USDC)`,
+      );
+    }
 
     console.log('Requesting withdraw...');
     const txHash = await walletClient.writeContract({
       address: vaultAddress,
       abi: VAULT_ABI,
       functionName: 'withdrawUSDC',
-      args: [usdcAmount],
+
+      args: [uuid, amountUsdcBaseUnits, BigInt(expiresAt), signature as `0x${string}`],
       account: userAddress,
       chain: null,
     });
