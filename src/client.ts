@@ -15,7 +15,7 @@ export interface BisonOrderEvent {
   action: 'buy' | 'sell';
   side: 'yes' | 'no';
   number: number;
-  priceMyrs: number;
+  priceUusdc: number;
 }
 
 export interface BisonMarketEvent {
@@ -27,7 +27,7 @@ export interface BisonMarketEvent {
 export interface BisonUSDCEvent {
   type: 'usdc_deposited' | 'usdc_withdrawn';
   userAddress: string;
-  myrsAmount: number;
+  uusdcAmount: number;
 }
 
 export interface BisonPositionEvent {
@@ -84,11 +84,11 @@ export type GetCreatedTokensResponse =
 
 export interface KalshiTickerUpdate {
   market_ticker: string;
-  yes_bid_myrs?: number;
-  yes_ask_myrs?: number;
-  no_bid_myrs?: number;
-  no_ask_myrs?: number;
-  last_price_myrs?: number;
+  yes_bid_uusdc?: number;
+  yes_ask_uusdc?: number;
+  no_bid_uusdc?: number;
+  no_ask_uusdc?: number;
+  last_price_uusdc?: number;
   volume?: number;
   open_interest?: number;
 }
@@ -472,7 +472,7 @@ export class BisonClient {
     marketId: string;
     side: 'yes' | 'no';
     number: number;
-    priceUsdMyrs: number;
+    priceUusdc: number;
     onEvent?: (event: BisonEvent) => void;
     onError?: (error: Error) => void;
   }): Promise<{ disconnect: () => void; txHash: `0x${string}` | null }> {
@@ -484,7 +484,7 @@ export class BisonClient {
       marketId,
       side,
       number,
-      priceUsdMyrs,
+      priceUusdc,
       onEvent,
       onError,
     } = params;
@@ -505,7 +505,7 @@ export class BisonClient {
         { name: 'action', type: 'string' },
         { name: 'side', type: 'string' },
         { name: 'number', type: 'uint256' },
-        { name: 'priceMyrs', type: 'uint256' },
+        { name: 'priceUusdc', type: 'uint256' },
         { name: 'expiry', type: 'uint256' },
       ],
     } as const;
@@ -515,7 +515,7 @@ export class BisonClient {
       action: 'buy',
       side,
       number: BigInt(number),
-      priceMyrs: BigInt(priceUsdMyrs),
+      priceUusdc: BigInt(priceUusdc),
       expiry: BigInt(expiry),
     };
 
@@ -531,7 +531,7 @@ export class BisonClient {
       chain: chain as 'base',
       marketId,
       number,
-      priceMyrs: priceUsdMyrs,
+      priceUusdc: priceUusdc,
       action: 'buy',
       side,
       userAddress,
@@ -565,7 +565,7 @@ export class BisonClient {
     marketId: string;
     side: 'yes' | 'no';
     number: number;
-    priceUsdMyrs: number;
+    priceUusdc: number;
     onEvent?: (event: BisonEvent) => void;
     onError?: (error: Error) => void;
   }): Promise<{ disconnect: () => void; txHash: `0x${string}` | null }> {
@@ -577,7 +577,7 @@ export class BisonClient {
       marketId,
       side,
       number,
-      priceUsdMyrs,
+      priceUusdc,
       onEvent,
       onError,
     } = params;
@@ -598,7 +598,7 @@ export class BisonClient {
         { name: 'action', type: 'string' },
         { name: 'side', type: 'string' },
         { name: 'number', type: 'uint256' },
-        { name: 'priceMyrs', type: 'uint256' },
+        { name: 'priceUusdc', type: 'uint256' },
         { name: 'expiry', type: 'uint256' },
       ],
     } as const;
@@ -608,7 +608,7 @@ export class BisonClient {
       action: 'sell',
       side,
       number: BigInt(number),
-      priceMyrs: BigInt(priceUsdMyrs),
+      priceUusdc: BigInt(priceUusdc),
       expiry: BigInt(expiry),
     };
 
@@ -624,7 +624,7 @@ export class BisonClient {
       chain: chain as 'base',
       marketId,
       number,
-      priceMyrs: priceUsdMyrs,
+      priceUusdc: priceUusdc,
       action: 'sell',
       side,
       userAddress,
@@ -864,10 +864,8 @@ export class BisonClient {
     console.log('Withdraw flow starting:', { userAddress, vaultAddress, amount });
     console.log('WalletClient chain:', walletClient.chain);
 
-    // Convert user input (USDC) to USDC base units (6 decimals)
+    // Convert user input (USDC) to USDC base units (6 decimals = µUSDC)
     const amountUsdcBaseUnits = parseUnits(String(amount), 6);
-    // Convert to myrs for comparison with API response (1 USDC = 10,000 myrs)
-    const amountMyrs = amountUsdcBaseUnits / 100n;
     const chainParsed = chain as 'base';
 
     console.log('Getting withdraw authorization from API...');
@@ -882,8 +880,8 @@ export class BisonClient {
     });
 
     const maxWithdrawAmountBigInt = BigInt(maxWithdrawAmount);
-    if (amountMyrs > maxWithdrawAmountBigInt) {
-      const maxUsdcAmount = Number(maxWithdrawAmountBigInt) / 10000;
+    if (amountUsdcBaseUnits > maxWithdrawAmountBigInt) {
+      const maxUsdcAmount = Number(maxWithdrawAmountBigInt) / 1_000_000;
       throw new Error(
         `Requested withdraw amount (${String(amount)} USDC) exceeds maximum allowed (${String(maxUsdcAmount)} USDC)`,
       );

@@ -202,7 +202,7 @@ export interface paths {
                             signature: string;
                             /** @description Unix timestamp when authorization expires */
                             expiresAt: number;
-                            /** @description Maximum amount user can withdraw in myrs (1 myr = $0.0001) */
+                            /** @description Maximum amount user can withdraw in µUSDC */
                             maxWithdrawAmount: number;
                         };
                     };
@@ -265,8 +265,8 @@ export interface paths {
                         "application/json": {
                             /** @description User wallet address */
                             userAddress: string;
-                            /** @description Deposited USDC balance in myrs (1 myr = $0.0001) */
-                            depositedBalanceMyrs: number;
+                            /** @description Deposited USDC balance in µUSDC */
+                            depositedBalanceUusdc: number;
                         };
                     };
                 };
@@ -453,8 +453,8 @@ export interface paths {
                                 action: "buy" | "sell";
                                 requestedQuantity: number;
                                 filledQuantity: number;
-                                filledMyrs: number;
-                                priceMyrs: number;
+                                filledUusdc: number;
+                                priceUusdc: number;
                                 chain: string;
                                 createdAt: number;
                                 updatedAt: number;
@@ -596,11 +596,11 @@ export interface paths {
                                 title?: string;
                                 /** @enum {string} */
                                 status?: "initialized" | "active" | "closed" | "settled" | "determined";
-                                yes_bid_myrs?: number;
-                                yes_ask_myrs?: number;
-                                no_bid_myrs?: number;
-                                no_ask_myrs?: number;
-                                last_price_myrs?: number;
+                                yes_bid_uusdc?: number;
+                                yes_ask_uusdc?: number;
+                                no_bid_uusdc?: number;
+                                no_ask_uusdc?: number;
+                                last_price_uusdc?: number;
                             }[];
                         };
                     };
@@ -762,10 +762,10 @@ export interface paths {
                          */
                         number: number;
                         /**
-                         * @description Price per contract in myrs (1-10000)
-                         * @example 7500
+                         * @description Price per contract in µUSDC (1-1000000)
+                         * @example 750000
                          */
-                        priceMyrs: number;
+                        priceUusdc: number;
                         /**
                          * @description Action to execute
                          * @example buy
