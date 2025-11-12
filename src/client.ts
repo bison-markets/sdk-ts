@@ -82,6 +82,13 @@ export type GetUserPositionsResponse =
 export type GetCreatedTokensResponse =
   OpenAPIPaths['/created-tokens']['get']['responses']['200']['content']['application/json'];
 
+export interface ChainInfo {
+  vaultAddress: `0x${string}`;
+  usdcAddress: `0x${string}`;
+  rpcUrl: string;
+  chainId: number;
+}
+
 export interface KalshiTickerUpdate {
   market_ticker: string;
   yes_bid_uusdc?: number;
@@ -92,6 +99,9 @@ export interface KalshiTickerUpdate {
   volume?: number;
   open_interest?: number;
 }
+
+// Module-level cache for /info responses, keyed by baseUrl
+const infoCache = new Map<string, GetInfoResponse>();
 
 export class BisonClient {
   private readonly client: ReturnType<typeof createBisonOAPIClient>;
@@ -112,6 +122,20 @@ export class BisonClient {
   constructor(options: BisonClientOptions) {
     this.baseUrl = options.baseUrl;
     this.client = createBisonOAPIClient(options.baseUrl);
+  }
+
+  private async getChainInfo(chain: 'base'): Promise<ChainInfo> {
+    if (!infoCache.has(this.baseUrl)) {
+      const info = await this.getInfo();
+      infoCache.set(this.baseUrl, info);
+    }
+
+    const info = infoCache.get(this.baseUrl);
+    if (!info) {
+      throw new Error('Failed to retrieve chain info from cache');
+    }
+
+    return info.chains[chain] as ChainInfo;
   }
 
   async getTokenAuthorization(
@@ -467,8 +491,7 @@ export class BisonClient {
     walletClient: WalletClient;
     publicClient: PublicClient;
     userAddress: `0x${string}`;
-    chain: string;
-    vaultAddress: `0x${string}`;
+    chain: 'base';
     marketId: string;
     side: 'yes' | 'no';
     number: number;
@@ -480,7 +503,6 @@ export class BisonClient {
       walletClient,
       userAddress,
       chain,
-      vaultAddress,
       marketId,
       side,
       number,
@@ -488,6 +510,8 @@ export class BisonClient {
       onEvent,
       onError,
     } = params;
+
+    const vaultAddress = (await this.getChainInfo(chain)).vaultAddress;
 
     const chainId = walletClient.chain?.id ?? 31337;
     const expiry = Math.floor(Date.now() / 1000) + 600;
@@ -560,8 +584,7 @@ export class BisonClient {
     walletClient: WalletClient;
     publicClient: PublicClient;
     userAddress: `0x${string}`;
-    chain: string;
-    vaultAddress: `0x${string}`;
+    chain: 'base';
     marketId: string;
     side: 'yes' | 'no';
     number: number;
@@ -573,7 +596,6 @@ export class BisonClient {
       walletClient,
       userAddress,
       chain,
-      vaultAddress,
       marketId,
       side,
       number,
@@ -581,6 +603,8 @@ export class BisonClient {
       onEvent,
       onError,
     } = params;
+
+    const vaultAddress = (await this.getChainInfo(chain)).vaultAddress;
 
     const chainId = walletClient.chain?.id ?? 31337;
     const expiry = Math.floor(Date.now() / 1000) + 600;
@@ -652,11 +676,12 @@ export class BisonClient {
   async executeCancelOrderFlow(params: {
     walletClient: WalletClient;
     userAddress: `0x${string}`;
-    chain: string;
-    vaultAddress: `0x${string}`;
+    chain: 'base';
     orderId: string;
   }): Promise<void> {
-    const { walletClient, userAddress, chain, vaultAddress, orderId } = params;
+    const { walletClient, userAddress, chain, orderId } = params;
+
+    const vaultAddress = (await this.getChainInfo(chain)).vaultAddress;
 
     const chainId = walletClient.chain?.id ?? 31337;
     const expiry = Math.floor(Date.now() / 1000) + 600;
@@ -710,14 +735,14 @@ export class BisonClient {
     walletClient: WalletClient;
     publicClient: PublicClient;
     userAddress: `0x${string}`;
-    chain: string;
-    vaultAddress: `0x${string}`;
+    chain: 'base';
     marketId: string;
     side: 'yes' | 'no';
     number: number;
   }): Promise<{ txHash: `0x${string}` }> {
-    const { walletClient, publicClient, userAddress, chain, vaultAddress, marketId, side, number } =
-      params;
+    const { walletClient, publicClient, userAddress, chain, marketId, side, number } = params;
+
+    const vaultAddress = (await this.getChainInfo(chain)).vaultAddress;
 
     const auth = await this.getTokenAuthorization({
       chain: chain as 'base',
@@ -755,14 +780,14 @@ export class BisonClient {
     walletClient: WalletClient;
     publicClient: PublicClient;
     userAddress: `0x${string}`;
-    chain: string;
-    vaultAddress: `0x${string}`;
+    chain: 'base';
     marketId: string;
     side: 'yes' | 'no';
     number: number;
   }): Promise<{ txHash: `0x${string}` }> {
-    const { walletClient, publicClient, userAddress, chain, vaultAddress, marketId, side, number } =
-      params;
+    const { walletClient, publicClient, userAddress, chain, marketId, side, number } = params;
+
+    const vaultAddress = (await this.getChainInfo(chain)).vaultAddress;
 
     const auth = await this.getTokenAuthorization({
       chain: chain as 'base',
@@ -801,12 +826,14 @@ export class BisonClient {
     walletClient: WalletClient;
     publicClient: PublicClient;
     userAddress: `0x${string}`;
-    vaultAddress: `0x${string}`;
-    usdcAddress: `0x${string}`;
+    chain: 'base';
     amountUusdc: number;
   }): Promise<`0x${string}`> {
-    const { walletClient, publicClient, userAddress, vaultAddress, usdcAddress, amountUusdc } =
-      params;
+    const { walletClient, publicClient, userAddress, chain, amountUusdc } = params;
+
+    const chainInfo = await this.getChainInfo(chain);
+    const vaultAddress = chainInfo.vaultAddress;
+    const usdcAddress = chainInfo.usdcAddress;
 
     console.log('Deposit flow starting:', { userAddress, vaultAddress, usdcAddress, amountUusdc });
     console.log('WalletClient chain:', walletClient.chain);
@@ -856,21 +883,21 @@ export class BisonClient {
     walletClient: WalletClient;
     publicClient: PublicClient;
     userAddress: `0x${string}`;
-    chain: string;
-    vaultAddress: `0x${string}`;
+    chain: 'base';
     amountUusdc: number;
   }): Promise<`0x${string}`> {
-    const { walletClient, publicClient, userAddress, chain, vaultAddress, amountUusdc } = params;
+    const { walletClient, publicClient, userAddress, chain, amountUusdc } = params;
+
+    const vaultAddress = (await this.getChainInfo(chain)).vaultAddress;
 
     console.log('Withdraw flow starting:', { userAddress, vaultAddress, amountUusdc });
     console.log('WalletClient chain:', walletClient.chain);
 
     const amountUsdcBaseUnits = BigInt(amountUusdc);
-    const chainParsed = chain as 'base';
 
     console.log('Getting withdraw authorization from API...');
     const { uuid, signature, expiresAt, maxWithdrawAmount } = await this.getWithdrawAuthorization({
-      chain: chainParsed,
+      chain,
       userAddress,
     });
 
@@ -904,11 +931,13 @@ export class BisonClient {
 
   async getPositionTokenAddress(params: {
     publicClient: PublicClient;
-    vaultAddress: `0x${string}`;
+    chain: 'base';
     marketId: string;
     side: 'yes' | 'no';
   }): Promise<`0x${string}` | null> {
-    const { publicClient, vaultAddress, marketId, side } = params;
+    const { publicClient, chain, marketId, side } = params;
+
+    const vaultAddress = (await this.getChainInfo(chain)).vaultAddress;
 
     const tokenAddress = await publicClient.readContract({
       address: vaultAddress,
