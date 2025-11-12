@@ -1,11 +1,11 @@
-# Bison SDK (TypeScript)
+# Bison TS SDK
 
 TypeScript SDK for Bison Markets.
 
 ## Installation
 
 ```bash
-npm install bison-sdk-ts
+npm i github:bison-markets/sdk-ts
 ```
 
 **Requirements:**
@@ -15,10 +15,53 @@ npm install bison-sdk-ts
 
 ## Usage
 
-```typescript
-import {} from 'bison-sdk-ts';
+More information can be found at the [SDK Docs](https://docs.bison.markets/sdks/introduction)
 
-// TODO: Add usage examples
+```typescript
+import { createBisonClient } from 'bison-sdk-ts';
+import { createWalletClient, createPublicClient, http, custom } from 'viem';
+import { base } from 'viem/chains';
+
+// Create a client instance
+const client = createBisonClient({
+  baseUrl: 'https://api.bison.markets/v1',
+});
+
+// Create a wallet client for signing transactions
+const walletClient = createWalletClient({
+  chain: base,
+  transport: custom(window.ethereum!),
+});
+
+// Create a public client for reading blockchain state
+const publicClient = createPublicClient({
+  chain: base,
+  transport: http(),
+});
+
+// Deposit 100 USDC into the vault
+const txHash = await client.executeDepositFlow({
+  walletClient,
+  publicClient,
+  userAddress: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266',
+  vaultAddress: '0x1234567890123456789012345678901234567890',
+  usdcAddress: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', // Base USDC
+  amount: 100,
+});
+
+console.log('Deposited! Transaction:', txHash);
+
+// Start listening for account events
+const disconnect = client.listen('0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266', (event) => {
+  if (event.type === 'usdc_deposited') {
+    console.log('USDC deposit confirmed:', event.uusdcAmount / 1_000_000, 'USDC');
+  } else if (event.type === 'order_filled') {
+    console.log('Order filled:', event.orderId);
+  }
+});
+
+// Clean up when done
+disconnect();
 ```
 
 ## Development
