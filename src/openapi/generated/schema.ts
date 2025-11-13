@@ -41,12 +41,34 @@ export interface paths {
                                     usdcAddress: string;
                                     /**
                                      * @description RPC URL for the chain
-                                     * @example https://mainnet.base.org
+                                     * @example https://rpc.example.com
                                      */
                                     rpcUrl: string;
                                     /**
                                      * @description Chain ID
-                                     * @example 8453
+                                     * @example 1337
+                                     */
+                                    chainId: number;
+                                };
+                                bsc: {
+                                    /**
+                                     * @description Address of Vault contract
+                                     * @example 0x1234567890123456789012345678901234567890
+                                     */
+                                    vaultAddress: string;
+                                    /**
+                                     * @description Address of USDC token contract
+                                     * @example 0x0987654321098765432109876543210987654321
+                                     */
+                                    usdcAddress: string;
+                                    /**
+                                     * @description RPC URL for the chain
+                                     * @example https://rpc.example.com
+                                     */
+                                    rpcUrl: string;
+                                    /**
+                                     * @description Chain ID
+                                     * @example 1337
                                      */
                                     chainId: number;
                                 };
@@ -84,11 +106,11 @@ export interface paths {
                 content: {
                     "application/json": {
                         /**
-                         * @description Chain to execute the action on; one of: base
+                         * @description Chain to execute the action on; one of: base, bsc
                          * @example base
                          * @enum {string}
                          */
-                        chain: "base";
+                        chain: "base" | "bsc";
                         /**
                          * @description ID of the market to mint/burn in
                          * @example PRES-2024
@@ -175,11 +197,11 @@ export interface paths {
                 content: {
                     "application/json": {
                         /**
-                         * @description Chain to execute the action on; one of: base
+                         * @description Chain to execute the action on; one of: base, bsc
                          * @example base
                          * @enum {string}
                          */
-                        chain: "base";
+                        chain: "base" | "bsc";
                         /**
                          * @description User wallet address
                          * @example 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
@@ -302,7 +324,7 @@ export interface paths {
             parameters: {
                 query?: {
                     /** @description Filter by chain; defaults to all chains */
-                    chain?: "base";
+                    chain?: "base" | "bsc";
                 };
                 header?: never;
                 path?: never;
@@ -596,6 +618,9 @@ export interface paths {
                                 title?: string;
                                 /** @enum {string} */
                                 status?: "initialized" | "active" | "closed" | "settled" | "determined";
+                                open_time?: string;
+                                close_time?: string;
+                                expiration_time?: string;
                                 yes_bid_uusdc?: number;
                                 yes_ask_uusdc?: number;
                                 no_bid_uusdc?: number;
@@ -746,11 +771,11 @@ export interface paths {
                 content: {
                     "application/json": {
                         /**
-                         * @description Chain to execute the action on; one of: base
+                         * @description Chain to execute the action on; one of: base, bsc
                          * @example base
                          * @enum {string}
                          */
-                        chain: "base";
+                        chain: "base" | "bsc";
                         /**
                          * @description ID of the market to buy/sell in
                          * @example PRES-2024
@@ -861,11 +886,11 @@ export interface paths {
                 content: {
                     "application/json": {
                         /**
-                         * @description Chain to execute the action on; one of: base
+                         * @description Chain to execute the action on; one of: base, bsc
                          * @example base
                          * @enum {string}
                          */
-                        chain: "base";
+                        chain: "base" | "bsc";
                         /**
                          * @description Kalshi order ID to cancel
                          * @example abc123

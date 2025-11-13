@@ -40,6 +40,11 @@ export interface BisonPositionEvent {
 
 export type BisonEvent = BisonOrderEvent | BisonMarketEvent | BisonUSDCEvent | BisonPositionEvent;
 
+export type GetInfoResponse =
+  OpenAPIPaths['/info']['get']['responses']['200']['content']['application/json'];
+
+export type SupportedChain = keyof GetInfoResponse['chains'];
+
 export type GetEventResponse =
   OpenAPIPaths['/get-event']['get']['responses']['200']['content']['application/json'];
 
@@ -66,9 +71,6 @@ export type PlaceOrderRequest = NonNullable<
 
 export type PlaceOrderResponse =
   OpenAPIPaths['/kalshi/order/limit']['post']['responses']['200']['content']['application/json'];
-
-export type GetInfoResponse =
-  OpenAPIPaths['/info']['get']['responses']['200']['content']['application/json'];
 
 export type GetDepositedUsdcBalanceResponse =
   OpenAPIPaths['/deposited-balance']['get']['responses']['200']['content']['application/json'];
@@ -124,7 +126,7 @@ export class BisonClient {
     this.client = createBisonOAPIClient(options.baseUrl);
   }
 
-  private async getChainInfo(chain: 'base'): Promise<ChainInfo> {
+  private async getChainInfo(chain: SupportedChain): Promise<ChainInfo> {
     if (!infoCache.has(this.baseUrl)) {
       const info = await this.getInfo();
       infoCache.set(this.baseUrl, info);
@@ -281,7 +283,7 @@ export class BisonClient {
     return data;
   }
 
-  async getCreatedTokens(chain?: 'base'): Promise<GetCreatedTokensResponse> {
+  async getCreatedTokens(chain?: SupportedChain): Promise<GetCreatedTokensResponse> {
     const { data, error } = await this.client.GET(
       '/created-tokens',
       chain ? { params: { query: { chain } } } : {},
@@ -491,7 +493,7 @@ export class BisonClient {
     walletClient: WalletClient;
     publicClient: PublicClient;
     userAddress: `0x${string}`;
-    chain: 'base';
+    chain: SupportedChain;
     marketId: string;
     side: 'yes' | 'no';
     number: number;
@@ -584,7 +586,7 @@ export class BisonClient {
     walletClient: WalletClient;
     publicClient: PublicClient;
     userAddress: `0x${string}`;
-    chain: 'base';
+    chain: SupportedChain;
     marketId: string;
     side: 'yes' | 'no';
     number: number;
@@ -676,7 +678,7 @@ export class BisonClient {
   async executeCancelOrderFlow(params: {
     walletClient: WalletClient;
     userAddress: `0x${string}`;
-    chain: 'base';
+    chain: SupportedChain;
     orderId: string;
   }): Promise<void> {
     const { walletClient, userAddress, chain, orderId } = params;
@@ -735,7 +737,7 @@ export class BisonClient {
     walletClient: WalletClient;
     publicClient: PublicClient;
     userAddress: `0x${string}`;
-    chain: 'base';
+    chain: SupportedChain;
     marketId: string;
     side: 'yes' | 'no';
     number: number;
@@ -780,7 +782,7 @@ export class BisonClient {
     walletClient: WalletClient;
     publicClient: PublicClient;
     userAddress: `0x${string}`;
-    chain: 'base';
+    chain: SupportedChain;
     marketId: string;
     side: 'yes' | 'no';
     number: number;
@@ -826,7 +828,7 @@ export class BisonClient {
     walletClient: WalletClient;
     publicClient: PublicClient;
     userAddress: `0x${string}`;
-    chain: 'base';
+    chain: SupportedChain;
     amountUusdc: number;
   }): Promise<`0x${string}`> {
     const { walletClient, publicClient, userAddress, chain, amountUusdc } = params;
@@ -883,7 +885,7 @@ export class BisonClient {
     walletClient: WalletClient;
     publicClient: PublicClient;
     userAddress: `0x${string}`;
-    chain: 'base';
+    chain: SupportedChain;
     amountUusdc: number;
   }): Promise<`0x${string}`> {
     const { walletClient, publicClient, userAddress, chain, amountUusdc } = params;
@@ -931,7 +933,7 @@ export class BisonClient {
 
   async getPositionTokenAddress(params: {
     publicClient: PublicClient;
-    chain: 'base';
+    chain: SupportedChain;
     marketId: string;
     side: 'yes' | 'no';
   }): Promise<`0x${string}` | null> {
