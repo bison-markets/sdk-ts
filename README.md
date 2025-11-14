@@ -1,11 +1,13 @@
 # Bison TS SDK
 
-TypeScript SDK for Bison Markets.
+[![npm version](https://badge.fury.io/js/@bison-markets%2Fsdk-ts.svg)](https://badge.fury.io/js/@bison-markets%2Fsdk-ts)
+
+TypeScript SDK for [Bison](https://bison.markets/).
 
 ## Installation
 
 ```bash
-npm i github:bison-markets/sdk-ts
+npm install @bison-markets/sdk-ts
 ```
 
 **Requirements:**
@@ -18,7 +20,7 @@ npm i github:bison-markets/sdk-ts
 More information can be found at the [SDK Docs](https://docs.bison.markets/sdks/introduction)
 
 ```typescript
-import { createBisonClient } from 'bison-sdk-ts';
+import { createBisonClient } from '@bison-markets/sdk-ts';
 import { createWalletClient, createPublicClient, http, custom } from 'viem';
 import { base } from 'viem/chains';
 

@@ -1,7 +1,10 @@
 {
-  "name": "bison-sdk-ts",
+  "name": "@bison-markets/sdk-ts",
   "version": "0.1.0",
   "description": "Bison Markets SDK (TypeScript)",
+  "publishConfig": {
+    "access": "public"
+  },
   "homepage": "https://github.com/bison-markets/sdk-ts#readme",
   "bugs": {
     "url": "https://github.com/bison-markets/sdk-ts/issues"
@@ -41,9 +44,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit",
-    "generate:openapi": "openapi-typescript ${OPENAPI_URL:-http://localhost:8787/openapi} --output ./src/openapi/generated/schema.ts",
-    "prepare": "npm run build",
-    "prepublishOnly": "npm run build"
+    "generate:openapi": "openapi-typescript ${OPENAPI_URL:-http://localhost:8787/openapi} --output ./src/openapi/generated/schema.ts"
   },
   "devDependencies": {
     "@types/node": "^22.9.0",
