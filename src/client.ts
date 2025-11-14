@@ -901,6 +901,7 @@ export class BisonClient {
     const { uuid, signature, expiresAt, maxWithdrawAmount } = await this.getWithdrawAuthorization({
       chain,
       userAddress,
+      amountUusdc,
     });
 
     console.log('Withdraw authorization received:', {

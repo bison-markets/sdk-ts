@@ -207,6 +207,11 @@ export interface paths {
                          * @example 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
                          */
                         userAddress: string;
+                        /**
+                         * @description Amount to withdraw in µUSDC (micro-USDC, 6 decimals)
+                         * @example 1000000
+                         */
+                        amountUusdc: number;
                     };
                 };
             };
