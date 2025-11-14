@@ -565,7 +565,7 @@ export class BisonClient {
       expiry,
     });
 
-    console.log('✓ Order placed:', orderResult);
+    console.log('Order placed:', orderResult);
 
     const disconnect = this.listen(
       userAddress,
@@ -658,7 +658,7 @@ export class BisonClient {
       expiry,
     });
 
-    console.log('✓ Order placed:', orderResult);
+    console.log('Order placed:', orderResult);
 
     const disconnect = this.listen(
       userAddress,
@@ -730,7 +730,7 @@ export class BisonClient {
       throw new Error(errorMsg);
     }
 
-    console.log('✓ Order cancellation requested:', data);
+    console.log('Order cancellation requested:', data);
   }
 
   async executeMintFlow(params: {
@@ -773,7 +773,7 @@ export class BisonClient {
 
     await publicClient.waitForTransactionReceipt({ hash: mintTxHash });
 
-    console.log('✓ Tokens minted');
+    console.log('Tokens minted');
 
     return { txHash: mintTxHash };
   }
@@ -819,7 +819,7 @@ export class BisonClient {
 
     await publicClient.waitForTransactionReceipt({ hash: burnTxHash });
 
-    console.log('✓ Tokens burned');
+    console.log('Tokens burned');
 
     return { txHash: burnTxHash };
   }
