@@ -28,6 +28,7 @@ export interface BisonUSDCEvent {
   type: 'usdc_deposited' | 'usdc_withdrawn';
   userAddress: string;
   uusdcAmount: number;
+  newBalanceUusdc: number;
 }
 
 export interface BisonPositionEvent {
