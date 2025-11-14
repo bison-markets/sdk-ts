@@ -616,6 +616,8 @@ export interface paths {
                             markets: {
                                 ticker: string;
                                 title?: string;
+                                yes_sub_title?: string;
+                                no_sub_title?: string;
                                 /** @enum {string} */
                                 status?: "initialized" | "active" | "closed" | "settled" | "determined";
                                 open_time?: string;
@@ -838,6 +840,17 @@ export interface paths {
                 };
                 /** @description Bad request */
                 400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Market not found */
+                404: {
                     headers: {
                         [name: string]: unknown;
                     };
