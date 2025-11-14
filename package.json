@@ -42,6 +42,7 @@
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit",
     "generate:openapi": "openapi-typescript ${OPENAPI_URL:-http://localhost:8787/openapi} --output ./src/openapi/generated/schema.ts",
+    "prepare": "npm run build",
     "prepublishOnly": "npm run build"
   },
   "devDependencies": {
