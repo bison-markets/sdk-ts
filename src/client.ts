@@ -899,7 +899,7 @@ export class BisonClient {
         auth.signature as `0x${string}`,
       ],
       account: userAddress,
-      chain: null,
+      chain: walletClient.chain,
     });
 
     await publicClient.waitForTransactionReceipt({ hash: mintTxHash });
@@ -945,7 +945,7 @@ export class BisonClient {
         auth.signature as `0x${string}`,
       ],
       account: userAddress,
-      chain: null,
+      chain: walletClient.chain,
     });
 
     await publicClient.waitForTransactionReceipt({ hash: burnTxHash });
@@ -990,7 +990,7 @@ export class BisonClient {
         functionName: 'approve',
         args: [vaultAddress, maxUint256],
         account: userAddress,
-        chain: null,
+        chain: walletClient.chain,
       });
       console.log('Approve tx hash:', hash);
       await publicClient.waitForTransactionReceipt({ hash });
@@ -1004,7 +1004,7 @@ export class BisonClient {
       functionName: 'depositUSDC',
       args: [usdcAmount],
       account: userAddress,
-      chain: null,
+      chain: walletClient.chain,
     });
     console.log('Deposit tx hash:', txHash);
     await publicClient.waitForTransactionReceipt({ hash: txHash });
@@ -1052,10 +1052,9 @@ export class BisonClient {
       address: vaultAddress,
       abi: VAULT_ABI,
       functionName: 'withdrawUSDC',
-
       args: [uuid, amountUsdcBaseUnits, BigInt(expiresAt), signature as `0x${string}`],
       account: userAddress,
-      chain: null,
+      chain: walletClient.chain,
     });
     console.log('Withdraw tx hash:', txHash);
     await publicClient.waitForTransactionReceipt({ hash: txHash });
