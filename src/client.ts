@@ -85,6 +85,9 @@ export type GetUserPositionsResponse =
 export type GetCreatedTokensResponse =
   OpenAPIPaths['/created-tokens']['get']['responses']['200']['content']['application/json'];
 
+export type GetMarketsResponse =
+  OpenAPIPaths['/kalshi/markets']['get']['responses']['200']['content']['application/json'];
+
 export interface ChainInfo {
   vaultAddress: `0x${string}`;
   usdcAddress: `0x${string}`;
@@ -322,6 +325,26 @@ export class BisonClient {
       throw new Error('Failed to get created tokens: ', error);
     } else if (typeof data === 'undefined') {
       throw new Error('No data returned from getCreatedTokens');
+    }
+
+    return data;
+  }
+
+  async getMarkets(params?: {
+    series_ticker?: string;
+    event_ticker?: string;
+    status?: 'active' | 'closed' | 'settled';
+    limit?: string;
+  }): Promise<GetMarketsResponse> {
+    const { data, error } = await this.client.GET(
+      '/kalshi/markets',
+      params ? { params: { query: params } } : {},
+    );
+
+    if (error?.error) {
+      throw new Error((error as { error?: string }).error ?? 'Failed to get markets');
+    } else if (!data) {
+      throw new Error('No data returned from getMarkets');
     }
 
     return data;

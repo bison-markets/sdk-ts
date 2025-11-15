@@ -26,7 +26,7 @@ import { base } from 'viem/chains';
 
 // Create a client instance
 const client = createBisonClient({
-  baseUrl: 'https://api.bison.markets/v1',
+  baseUrl: 'https://api.bison.markets',
 });
 
 // Create a wallet client for signing transactions
