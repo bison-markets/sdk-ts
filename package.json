@@ -44,7 +44,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit",
-    "generate:openapi": "openapi-typescript ${OPENAPI_URL:-http://localhost:8787/openapi} --output ./src/openapi/generated/schema.ts"
+    "generate:openapi": "openapi-typescript ${OPENAPI_URL:-http://localhost:8787/openapi} --output ./src/openapi/generated/schema.ts",
+    "prepare": "husky"
   },
   "devDependencies": {
     "@types/node": "^22.9.0",
@@ -52,6 +53,7 @@
     "@typescript-eslint/parser": "^8.13.0",
     "eslint": "^9.14.0",
     "globals": "^16.5.0",
+    "husky": "^9.1.7",
     "jsdom": "^27.1.0",
     "openapi-typescript": "^7.4.4",
     "prettier": "^3.3.3",
