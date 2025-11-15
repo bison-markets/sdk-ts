@@ -103,6 +103,28 @@ export interface KalshiTickerUpdate {
   open_interest?: number;
 }
 
+export interface OrderbookLevel {
+  price_uusdc: number;
+  quantity: number;
+}
+
+export interface OrderbookSnapshot {
+  type: 'orderbook_snapshot';
+  market_ticker: string;
+  yes?: OrderbookLevel[];
+  no?: OrderbookLevel[];
+}
+
+export interface OrderbookDelta {
+  type: 'orderbook_delta';
+  market_ticker: string;
+  price_uusdc: number;
+  delta: number;
+  side: 'yes' | 'no';
+}
+
+export type OrderbookUpdate = OrderbookSnapshot | OrderbookDelta;
+
 // Module-level cache for /info responses, keyed by baseUrl
 const infoCache = new Map<string, GetInfoResponse>();
 
@@ -121,6 +143,12 @@ export class BisonClient {
   private eventHeartbeatTimer: ReturnType<typeof setInterval> | null = null;
   private shouldReconnectEvent = false;
   private eventReconnectAttempts = 0;
+
+  private orderbookWs: WebSocket | null = null;
+  private orderbookReconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private orderbookHeartbeatTimer: ReturnType<typeof setInterval> | null = null;
+  private shouldReconnectOrderbook = false;
+  private orderbookReconnectAttempts = 0;
 
   constructor(options: BisonClientOptions) {
     this.baseUrl = options.baseUrl;
@@ -486,6 +514,108 @@ export class BisonClient {
       if (this.eventWs) {
         this.eventWs.close();
         this.eventWs = null;
+      }
+    };
+  }
+
+  listenToOrderbook(
+    marketTicker: string,
+    onUpdate: (update: OrderbookUpdate) => void,
+    options?: {
+      onError?: (error: Error) => void;
+      onConnect?: () => void;
+      onDisconnect?: () => void;
+      reconnect?: boolean;
+    },
+  ): () => void {
+    this.shouldReconnectOrderbook = options?.reconnect ?? true;
+    this.orderbookReconnectAttempts = 0;
+
+    const connect = () => {
+      const wsUrl = `${this.baseUrl.replace(/^http/, 'ws')}/ws/kalshi/orderbook/${marketTicker}`;
+
+      if (
+        this.orderbookWs?.readyState === WebSocket.OPEN ||
+        this.orderbookWs?.readyState === WebSocket.CONNECTING
+      ) {
+        return;
+      }
+
+      this.orderbookWs = new WebSocket(wsUrl);
+
+      this.orderbookWs.onopen = () => {
+        this.orderbookReconnectAttempts = 0;
+        options?.onConnect?.();
+
+        if (options?.reconnect !== false) {
+          this.orderbookHeartbeatTimer = setInterval(() => {
+            if (this.orderbookWs?.readyState === WebSocket.OPEN) {
+              this.orderbookWs.send(JSON.stringify({ type: 'ping' }));
+            }
+          }, 30000);
+        }
+      };
+
+      this.orderbookWs.onmessage = (event) => {
+        try {
+          const data: unknown = JSON.parse(String(event.data));
+          if (
+            data &&
+            typeof data === 'object' &&
+            'type' in data &&
+            (data.type === 'orderbook_snapshot' || data.type === 'orderbook_delta')
+          ) {
+            onUpdate(data as OrderbookUpdate);
+          }
+        } catch (error) {
+          options?.onError?.(error as Error);
+        }
+      };
+
+      this.orderbookWs.onerror = () => {
+        options?.onError?.(new Error('WebSocket error'));
+      };
+
+      this.orderbookWs.onclose = () => {
+        if (this.orderbookHeartbeatTimer) {
+          clearInterval(this.orderbookHeartbeatTimer);
+          this.orderbookHeartbeatTimer = null;
+        }
+
+        options?.onDisconnect?.();
+
+        if (
+          this.shouldReconnectOrderbook &&
+          this.orderbookReconnectAttempts < this.maxReconnectAttempts
+        ) {
+          this.orderbookReconnectAttempts++;
+          const delay = Math.min(1000 * Math.pow(2, this.orderbookReconnectAttempts - 1), 30000);
+
+          this.orderbookReconnectTimer = setTimeout(() => {
+            connect();
+          }, delay);
+        }
+      };
+    };
+
+    connect();
+
+    return () => {
+      this.shouldReconnectOrderbook = false;
+
+      if (this.orderbookReconnectTimer) {
+        clearTimeout(this.orderbookReconnectTimer);
+        this.orderbookReconnectTimer = null;
+      }
+
+      if (this.orderbookHeartbeatTimer) {
+        clearInterval(this.orderbookHeartbeatTimer);
+        this.orderbookHeartbeatTimer = null;
+      }
+
+      if (this.orderbookWs) {
+        this.orderbookWs.close();
+        this.orderbookWs = null;
       }
     };
   }
