@@ -6,6 +6,7 @@ import { VAULT_ABI, ERC20_ABI } from './constants';
 
 export interface BisonClientOptions {
   baseUrl: string;
+  devAccountId?: string | undefined;
 }
 
 export interface BisonOrderEvent {
@@ -134,6 +135,7 @@ const infoCache = new Map<string, GetInfoResponse>();
 export class BisonClient {
   private readonly client: ReturnType<typeof createBisonOAPIClient>;
   private readonly baseUrl: string;
+  private readonly devAccountId?: string | undefined;
   private ws: WebSocket | null = null;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
@@ -155,6 +157,7 @@ export class BisonClient {
 
   constructor(options: BisonClientOptions) {
     this.baseUrl = options.baseUrl;
+    this.devAccountId = 'devAccountId' in options ? options.devAccountId : undefined;
     this.client = createBisonOAPIClient(options.baseUrl);
   }
 
@@ -207,9 +210,16 @@ export class BisonClient {
     return data;
   }
 
-  async placeOrder(options: PlaceOrderRequest): Promise<PlaceOrderResponse> {
+  async placeOrder(
+    options: PlaceOrderRequest & { devAccountId?: string },
+  ): Promise<PlaceOrderResponse> {
+    const requestBody: PlaceOrderRequest & { devAccountId?: string } = { ...options };
+    if (this.devAccountId && !requestBody.devAccountId) {
+      requestBody.devAccountId = this.devAccountId;
+    }
+
     const { data, error } = await this.client.POST('/kalshi/order/limit', {
-      body: options,
+      body: requestBody as PlaceOrderRequest,
     });
 
     if (error) {
