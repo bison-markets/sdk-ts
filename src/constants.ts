@@ -13,6 +13,7 @@ export const VAULT_ABI = [
     inputs: [
       { name: 'uuid', type: 'string' },
       { name: 'usdcAmount', type: 'uint256' },
+      { name: 'recipient', type: 'address' },
       { name: 'expiry', type: 'uint256' },
       { name: 'signature', type: 'bytes' },
     ],

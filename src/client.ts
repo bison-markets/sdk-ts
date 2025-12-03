@@ -89,6 +89,23 @@ export type GetCreatedTokensResponse =
 export type GetMarketsResponse =
   OpenAPIPaths['/kalshi/markets']['get']['responses']['200']['content']['application/json'];
 
+export type ScheduleWithdrawRequest = NonNullable<
+  OpenAPIPaths['/schedule-withdraw']['post']['requestBody']
+>['content']['application/json'];
+
+export type ScheduleWithdrawResponse =
+  OpenAPIPaths['/schedule-withdraw']['post']['responses']['200']['content']['application/json'];
+
+export type GetPendingWithdrawsResponse =
+  OpenAPIPaths['/pending-withdraws/{userAddress}']['get']['responses']['200']['content']['application/json'];
+
+export type GetFeeClaimAuthorizationRequest = NonNullable<
+  OpenAPIPaths['/get-fee-claim-authorization']['post']['requestBody']
+>['content']['application/json'];
+
+export type GetFeeClaimAuthorizationResponse =
+  OpenAPIPaths['/get-fee-claim-authorization']['post']['responses']['200']['content']['application/json'];
+
 export interface ChainInfo {
   vaultAddress: `0x${string}`;
   usdcAddress: `0x${string}`;
@@ -205,6 +222,24 @@ export class BisonClient {
       throw new Error(errorMsg);
     } else if (typeof data === 'undefined') {
       throw new Error('No data returned from getWithdrawAuthorization');
+    }
+
+    return data;
+  }
+
+  async getFeeClaimAuthorization(
+    options: GetFeeClaimAuthorizationRequest,
+  ): Promise<GetFeeClaimAuthorizationResponse> {
+    const { data, error } = await this.client.POST('/get-fee-claim-authorization', {
+      body: options,
+    });
+
+    if (typeof error !== 'undefined') {
+      const errorMsg =
+        (error as { error?: string }).error ?? 'Failed to get fee claim authorization';
+      throw new Error(errorMsg);
+    } else if (typeof data === 'undefined') {
+      throw new Error('No data returned from getFeeClaimAuthorization');
     }
 
     return data;
@@ -1045,27 +1080,111 @@ export class BisonClient {
     return txHash;
   }
 
-  async executeWithdrawFlow(params: {
+  async scheduleWithdraw(params: {
+    walletClient: WalletClient;
+    userAddress: `0x${string}`;
+    chain: SupportedChain;
+    amountUusdc: number;
+  }): Promise<ScheduleWithdrawResponse> {
+    const { walletClient, userAddress, chain, amountUusdc } = params;
+
+    console.log('Schedule withdraw starting:', { userAddress, chain, amountUusdc });
+
+    const chainId = walletClient.chain?.id ?? 31337;
+    const expiry = Math.floor(Date.now() / 1000) + 600;
+
+    const domain = {
+      name: 'BisonScheduleWithdraw',
+      version: '1',
+      chainId,
+    } as const;
+
+    const types = {
+      ScheduleWithdraw: [
+        { name: 'userAddress', type: 'address' },
+        { name: 'chain', type: 'string' },
+        { name: 'amountUusdc', type: 'uint256' },
+        { name: 'expiry', type: 'uint256' },
+      ],
+    } as const;
+
+    const message = {
+      userAddress,
+      chain,
+      amountUusdc: BigInt(amountUusdc),
+      expiry: BigInt(expiry),
+    };
+
+    const signature = await walletClient.signTypedData({
+      account: userAddress,
+      domain,
+      types,
+      primaryType: 'ScheduleWithdraw',
+      message,
+    });
+
+    console.log('Signature generated, calling API...');
+
+    const { data, error } = await this.client.POST('/schedule-withdraw', {
+      body: {
+        userAddress,
+        chain,
+        amountUusdc,
+        signature,
+        expiry,
+      },
+    });
+
+    if (error) {
+      const errorMsg = (error as { error?: string }).error ?? 'Failed to schedule withdraw';
+      throw new Error(errorMsg);
+    } else if (typeof data === 'undefined') {
+      throw new Error('No data returned from scheduleWithdraw');
+    }
+
+    console.log('Withdraw scheduled:', data);
+    return data;
+  }
+
+  async getPendingWithdraws(params: {
+    userAddress: `0x${string}`;
+  }): Promise<GetPendingWithdrawsResponse> {
+    const { userAddress } = params;
+
+    const { data, error } = await this.client.GET('/pending-withdraws/{userAddress}', {
+      params: {
+        path: {
+          userAddress,
+        },
+      },
+    });
+
+    if (error?.error) {
+      throw new Error((error as { error?: string }).error ?? 'Failed to get pending withdraws');
+    } else if (typeof data === 'undefined') {
+      throw new Error('No data returned from getPendingWithdraws');
+    }
+
+    return data;
+  }
+
+  async claimWithdraw(params: {
     walletClient: WalletClient;
     publicClient: PublicClient;
     userAddress: `0x${string}`;
     chain: SupportedChain;
-    amountUusdc: number;
   }): Promise<`0x${string}`> {
-    const { walletClient, publicClient, userAddress, chain, amountUusdc } = params;
+    const { walletClient, publicClient, userAddress, chain } = params;
 
     const vaultAddress = (await this.getChainInfo(chain)).vaultAddress;
 
-    console.log('Withdraw flow starting:', { userAddress, vaultAddress, amountUusdc });
+    console.log('Claim withdraw starting:', { userAddress, vaultAddress, chain });
     console.log('WalletClient chain:', walletClient.chain);
-
-    const amountUsdcBaseUnits = BigInt(amountUusdc);
 
     console.log('Getting withdraw authorization from API...');
     const { uuid, signature, expiresAt, maxWithdrawAmount } = await this.getWithdrawAuthorization({
       chain,
       userAddress,
-      amountUusdc,
     });
 
     console.log('Withdraw authorization received:', {
@@ -1073,11 +1192,8 @@ export class BisonClient {
       expiresAt,
     });
 
-    const maxWithdrawAmountBigInt = BigInt(maxWithdrawAmount);
-    if (amountUsdcBaseUnits > maxWithdrawAmountBigInt) {
-      throw new Error(
-        `Requested withdraw amount (${String(amountUusdc)} µUSDC) exceeds maximum allowed (${String(maxWithdrawAmount)} µUSDC)`,
-      );
+    if (maxWithdrawAmount === 0) {
+      throw new Error('No unclaimed withdrawals available');
     }
 
     console.log('Requesting withdraw...');
@@ -1085,13 +1201,69 @@ export class BisonClient {
       address: vaultAddress,
       abi: VAULT_ABI,
       functionName: 'withdrawUSDC',
-      args: [uuid, amountUsdcBaseUnits, BigInt(expiresAt), signature as `0x${string}`],
+      args: [
+        uuid,
+        BigInt(maxWithdrawAmount),
+        userAddress,
+        BigInt(expiresAt),
+        signature as `0x${string}`,
+      ],
       account: userAddress,
       chain: walletClient.chain,
     });
     console.log('Withdraw tx hash:', txHash);
     await publicClient.waitForTransactionReceipt({ hash: txHash });
     console.log('Withdraw confirmed');
+    return txHash;
+  }
+
+  /**
+   * Claim accumulated dev fees from the vault
+   * @param params - Parameters for claiming fees
+   * @returns Transaction hash
+   */
+  async claimDevFees(params: {
+    walletClient: WalletClient;
+    publicClient: PublicClient;
+    devAccountId: string;
+  }): Promise<`0x${string}`> {
+    const { walletClient, publicClient, devAccountId } = params;
+
+    console.log('Claim dev fees starting:', { devAccountId });
+
+    const { uuid, signature, expiresAt, amount, chain, signerAddress } =
+      await this.getFeeClaimAuthorization({
+        claimantType: 'dev',
+        devAccountId,
+      });
+
+    console.log('Fee authorization received:', { amount, chain, signerAddress });
+
+    if (amount === 0) {
+      throw new Error('No unclaimed fees available');
+    }
+
+    const vaultAddress = (await this.getChainInfo(chain as SupportedChain)).vaultAddress;
+
+    console.log('Claiming fees from vault...');
+    const txHash = await walletClient.writeContract({
+      address: vaultAddress,
+      abi: VAULT_ABI,
+      functionName: 'withdrawUSDC',
+      args: [
+        uuid,
+        BigInt(amount),
+        signerAddress as `0x${string}`,
+        BigInt(expiresAt),
+        signature as `0x${string}`,
+      ],
+      account: signerAddress as `0x${string}`,
+      chain: walletClient.chain,
+    });
+
+    console.log('Fee claim tx hash:', txHash);
+    await publicClient.waitForTransactionReceipt({ hash: txHash });
+    console.log('Fee claim confirmed');
     return txHash;
   }
 

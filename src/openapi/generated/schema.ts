@@ -207,11 +207,6 @@ export interface paths {
                          * @example 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
                          */
                         userAddress: string;
-                        /**
-                         * @description Amount to withdraw in µUSDC (micro-USDC, 6 decimals)
-                         * @example 1000000
-                         */
-                        amountUusdc: number;
                     };
                 };
             };
@@ -229,7 +224,7 @@ export interface paths {
                             signature: string;
                             /** @description Unix timestamp when authorization expires */
                             expiresAt: number;
-                            /** @description Maximum amount user can withdraw in µUSDC */
+                            /** @description Total amount available to withdraw in µUSDC */
                             maxWithdrawAmount: number;
                         };
                     };
@@ -258,6 +253,232 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/get-fee-claim-authorization": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        /**
+                         * @description Type of claimant
+                         * @example dev
+                         * @enum {string}
+                         */
+                        claimantType: "bison" | "dev";
+                        /**
+                         * @description Dev account ID (required when claimantType is "dev")
+                         * @example my-dev-account
+                         */
+                        devAccountId?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Fee authorization generated successfully */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @description Unique authorization ID */
+                            uuid: string;
+                            /** @description EIP-712 signature for the authorization */
+                            signature: string;
+                            /** @description Unix timestamp when authorization expires */
+                            expiresAt: number;
+                            /** @description Fee amount to claim in µUSDC */
+                            amount: number;
+                            /** @description Chain to claim on */
+                            chain: string;
+                            /** @description Address receiving the payout */
+                            signerAddress: string;
+                        };
+                    };
+                };
+                /** @description Bad request - no fees to claim or invalid request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Failed */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/schedule-withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        userAddress: string;
+                        /** @enum {string} */
+                        chain: "base" | "bsc";
+                        amountUusdc: number;
+                        signature: string;
+                        expiry: number;
+                    };
+                };
+            };
+            responses: {
+                /** @description Withdraw scheduled successfully */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            withdrawId: string;
+                            amountUusdc: number;
+                            /** @enum {string} */
+                            status: "pending" | "fill-locked" | "unclaimed" | "claimed";
+                            scheduledAt: string;
+                        };
+                    };
+                };
+                /** @description Invalid request or insufficient balance */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Server error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pending-withdraws/{userAddress}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    userAddress: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description User pending withdraws retrieved successfully */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            withdraws: {
+                                id: string;
+                                /** @enum {string} */
+                                chain: "base" | "bsc";
+                                amountUusdc: number;
+                                claimedAmountUusdc: number;
+                                remainingUusdc: number;
+                                /** @enum {string} */
+                                status: "pending" | "fill-locked" | "unclaimed" | "claimed";
+                                scheduledAt: string;
+                                lockedAt: string | null;
+                                unclaimedAt: string | null;
+                            }[];
+                            totalPending: number;
+                            totalFillLocked: number;
+                            totalUnclaimed: number;
+                            totalAvailableUnclaimed: number;
+                        };
+                    };
+                };
+                /** @description Server error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -483,6 +704,8 @@ export interface paths {
                                 filledUusdc: number;
                                 priceUusdc: number;
                                 chain: string;
+                                /** @enum {string} */
+                                status: "pending" | "filled" | "cancelled";
                                 createdAt: number;
                                 updatedAt: number;
                             }[];
@@ -825,6 +1048,11 @@ export interface paths {
                          * @example 1234567890
                          */
                         expiry: number;
+                        /**
+                         * @description Optional dev account ID to attribute this order to
+                         * @example bison
+                         */
+                        devAccountId?: string;
                     };
                 };
             };
