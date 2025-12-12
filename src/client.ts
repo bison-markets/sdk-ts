@@ -627,13 +627,13 @@ export class BisonClient {
       this.orderbookWs.onmessage = (event) => {
         try {
           const data: unknown = JSON.parse(String(event.data));
-          if (
-            data &&
-            typeof data === 'object' &&
-            'type' in data &&
-            (data.type === 'orderbook_snapshot' || data.type === 'orderbook_delta')
-          ) {
-            onUpdate(data as OrderbookUpdate);
+          if (data && typeof data === 'object' && 'type' in data) {
+            if (data.type === 'orderbook_snapshot' || data.type === 'orderbook_delta') {
+              onUpdate(data as OrderbookUpdate);
+            } else if (data.type === 'orderbook_error') {
+              const errorData = data as { type: 'orderbook_error'; message: string };
+              options?.onError?.(new Error(errorData.message));
+            }
           }
         } catch (error) {
           options?.onError?.(error as Error);
