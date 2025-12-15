@@ -77,6 +77,11 @@ export type PlaceOrderResponse =
 export type GetDepositedUsdcBalanceResponse =
   OpenAPIPaths['/deposited-balance']['get']['responses']['200']['content']['application/json'];
 
+export type GetUserOrdersParams = Omit<
+  NonNullable<OpenAPIPaths['/kalshi/orders']['get']['parameters']['query']>,
+  'userId'
+>;
+
 export type GetUserOrdersResponse =
   OpenAPIPaths['/kalshi/orders']['get']['responses']['200']['content']['application/json'];
 
@@ -328,10 +333,13 @@ export class BisonClient {
     return data;
   }
 
-  async getUserOrders(userId: string): Promise<GetUserOrdersResponse> {
+  async getUserOrders(
+    userId: string,
+    params?: GetUserOrdersParams,
+  ): Promise<GetUserOrdersResponse> {
     const { data, error } = await this.client.GET('/kalshi/orders', {
       params: {
-        query: { userId },
+        query: { userId, ...params },
       },
     });
 

@@ -677,6 +677,26 @@ export interface paths {
                 query: {
                     /** @description Ethereum address of the user */
                     userId: string;
+                    /** @description Filter by status. "closed" matches filled OR cancelled. */
+                    status?: "pending" | "filled" | "cancelled" | "closed";
+                    /** @description Filter by market ticker */
+                    marketId?: string;
+                    /** @description Filter by order action */
+                    action?: "buy" | "sell";
+                    /** @description Filter by contract side */
+                    side?: "yes" | "no";
+                    /** @description Orders created after this timestamp (ms) */
+                    createdAfter?: number | null;
+                    /** @description Orders created before this timestamp (ms) */
+                    createdBefore?: number | null;
+                    /** @description Field to sort by (default: createdAt) */
+                    sortBy?: "createdAt" | "updatedAt";
+                    /** @description Sort direction (default: desc) */
+                    sortOrder?: "asc" | "desc";
+                    /** @description Max orders per page (default: 50, max: 200) */
+                    limit?: number;
+                    /** @description Pagination cursor from previous response */
+                    cursor?: string;
                 };
                 header?: never;
                 path?: never;
@@ -709,6 +729,11 @@ export interface paths {
                                 createdAt: number;
                                 updatedAt: number;
                             }[];
+                            pagination: {
+                                total: number;
+                                hasMore: boolean;
+                                nextCursor?: string;
+                            };
                         };
                     };
                 };
