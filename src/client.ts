@@ -2,11 +2,18 @@ import 'viem/window';
 import { createBisonOAPIClient, OpenAPIPaths } from './openapi';
 import type { WalletClient, PublicClient } from 'viem';
 import { maxUint256 } from 'viem';
+import { signTypedData } from 'viem/accounts';
 import { VAULT_ABI, ERC20_ABI } from './constants';
+
+export interface DevFlags {
+  privateKey: `0x${string}`;
+  devAccountId: string;
+}
 
 export interface BisonClientOptions {
   baseUrl: string;
   devAccountId?: string | undefined;
+  devFlags?: DevFlags;
 }
 
 export interface BisonOrderEvent {
@@ -104,12 +111,14 @@ export type ScheduleWithdrawResponse =
 export type GetPendingWithdrawsResponse =
   OpenAPIPaths['/pending-withdraws/{userAddress}']['get']['responses']['200']['content']['application/json'];
 
-export type GetFeeClaimAuthorizationRequest = NonNullable<
-  OpenAPIPaths['/get-fee-claim-authorization']['post']['requestBody']
->['content']['application/json'];
-
 export type GetFeeClaimAuthorizationResponse =
-  OpenAPIPaths['/get-fee-claim-authorization']['post']['responses']['200']['content']['application/json'];
+  OpenAPIPaths['/dev/fee-claim-authorization']['post']['responses']['200']['content']['application/json'];
+
+export type GetDevAccountFeesResponse =
+  OpenAPIPaths['/dev/fees']['get']['responses']['200']['content']['application/json'];
+
+export type GetDevAccountInfoResponse =
+  OpenAPIPaths['/dev/info']['get']['responses']['200']['content']['application/json'];
 
 export interface ChainInfo {
   vaultAddress: `0x${string}`;
@@ -154,10 +163,24 @@ export type OrderbookUpdate = OrderbookSnapshot | OrderbookDelta;
 // Module-level cache for /info responses, keyed by baseUrl
 const infoCache = new Map<string, GetInfoResponse>();
 
+const DEV_AUTH_DOMAIN = {
+  name: 'BisonDevAuth',
+  version: '1',
+} as const;
+
+const DEV_AUTH_TYPES = {
+  DevAccountAuth: [
+    { name: 'devAccountId', type: 'string' },
+    { name: 'action', type: 'string' },
+    { name: 'expiry', type: 'uint256' },
+  ],
+} as const;
+
 export class BisonClient {
   private readonly client: ReturnType<typeof createBisonOAPIClient>;
   private readonly baseUrl: string;
   private readonly devAccountId?: string | undefined;
+  private readonly devFlags: DevFlags | undefined;
   private ws: WebSocket | null = null;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
@@ -180,7 +203,35 @@ export class BisonClient {
   constructor(options: BisonClientOptions) {
     this.baseUrl = options.baseUrl;
     this.devAccountId = 'devAccountId' in options ? options.devAccountId : undefined;
+    this.devFlags = options.devFlags;
     this.client = createBisonOAPIClient(options.baseUrl);
+  }
+
+  private async signDevAuth(action: string): Promise<string> {
+    if (!this.devFlags) {
+      throw new Error('devFlags not configured');
+    }
+
+    const expiry = Math.floor(Date.now() / 1000) + 300;
+
+    const signature = await signTypedData({
+      privateKey: this.devFlags.privateKey,
+      domain: DEV_AUTH_DOMAIN,
+      types: DEV_AUTH_TYPES,
+      primaryType: 'DevAccountAuth',
+      message: {
+        devAccountId: this.devFlags.devAccountId,
+        action,
+        expiry: BigInt(expiry),
+      },
+    });
+
+    return JSON.stringify({
+      devAccountId: this.devFlags.devAccountId,
+      action,
+      expiry,
+      signature,
+    });
   }
 
   private async getChainInfo(chain: SupportedChain): Promise<ChainInfo> {
@@ -232,11 +283,15 @@ export class BisonClient {
     return data;
   }
 
-  async getFeeClaimAuthorization(
-    options: GetFeeClaimAuthorizationRequest,
-  ): Promise<GetFeeClaimAuthorizationResponse> {
-    const { data, error } = await this.client.POST('/get-fee-claim-authorization', {
-      body: options,
+  async getFeeClaimAuthorization(): Promise<GetFeeClaimAuthorizationResponse> {
+    if (!this.devFlags) {
+      throw new Error('devFlags required for getFeeClaimAuthorization');
+    }
+
+    const authHeader = await this.signDevAuth('fee-claim-authorization');
+
+    const { data, error } = await this.client.POST('/dev/fee-claim-authorization', {
+      params: { header: { 'x-dev-auth': authHeader } },
     });
 
     if (typeof error !== 'undefined') {
@@ -245,6 +300,48 @@ export class BisonClient {
       throw new Error(errorMsg);
     } else if (typeof data === 'undefined') {
       throw new Error('No data returned from getFeeClaimAuthorization');
+    }
+
+    return data;
+  }
+
+  async getDevAccountFees(): Promise<GetDevAccountFeesResponse> {
+    if (!this.devFlags) {
+      throw new Error('devFlags required for getDevAccountFees');
+    }
+
+    const authHeader = await this.signDevAuth('fees');
+
+    const { data, error } = await this.client.GET('/dev/fees', {
+      params: { header: { 'x-dev-auth': authHeader } },
+    });
+
+    if (typeof error !== 'undefined') {
+      const errorMsg = (error as { error?: string }).error ?? 'Failed to get dev account fees';
+      throw new Error(errorMsg);
+    } else if (typeof data === 'undefined') {
+      throw new Error('No data returned from getDevAccountFees');
+    }
+
+    return data;
+  }
+
+  async getDevAccountInfo(): Promise<GetDevAccountInfoResponse> {
+    if (!this.devFlags) {
+      throw new Error('devFlags required for getDevAccountInfo');
+    }
+
+    const authHeader = await this.signDevAuth('info');
+
+    const { data, error } = await this.client.GET('/dev/info', {
+      params: { header: { 'x-dev-auth': authHeader } },
+    });
+
+    if (typeof error !== 'undefined') {
+      const errorMsg = (error as { error?: string }).error ?? 'Failed to get dev account info';
+      throw new Error(errorMsg);
+    } else if (typeof data === 'undefined') {
+      throw new Error('No data returned from getDevAccountInfo');
     }
 
     return data;
@@ -1226,24 +1323,23 @@ export class BisonClient {
   }
 
   /**
-   * Claim accumulated dev fees from the vault
-   * @param params - Parameters for claiming fees
-   * @returns Transaction hash
+   * Claim accumulated dev fees from the vault.
+   * Requires devFlags to be configured on the client.
    */
   async claimDevFees(params: {
     walletClient: WalletClient;
     publicClient: PublicClient;
-    devAccountId: string;
   }): Promise<`0x${string}`> {
-    const { walletClient, publicClient, devAccountId } = params;
+    if (!this.devFlags) {
+      throw new Error('devFlags required for claimDevFees');
+    }
 
-    console.log('Claim dev fees starting:', { devAccountId });
+    const { walletClient, publicClient } = params;
+
+    console.log('Claim dev fees starting:', { devAccountId: this.devFlags.devAccountId });
 
     const { uuid, signature, expiresAt, amount, chain, signerAddress } =
-      await this.getFeeClaimAuthorization({
-        claimantType: 'dev',
-        devAccountId,
-      });
+      await this.getFeeClaimAuthorization();
 
     console.log('Fee authorization received:', { amount, chain, signerAddress });
 

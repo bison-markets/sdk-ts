@@ -259,92 +259,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/get-fee-claim-authorization": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: {
-                content: {
-                    "application/json": {
-                        /**
-                         * @description Type of claimant
-                         * @example dev
-                         * @enum {string}
-                         */
-                        claimantType: "bison" | "dev";
-                        /**
-                         * @description Dev account ID (required when claimantType is "dev")
-                         * @example my-dev-account
-                         */
-                        devAccountId?: string;
-                    };
-                };
-            };
-            responses: {
-                /** @description Fee authorization generated successfully */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** @description Unique authorization ID */
-                            uuid: string;
-                            /** @description EIP-712 signature for the authorization */
-                            signature: string;
-                            /** @description Unix timestamp when authorization expires */
-                            expiresAt: number;
-                            /** @description Fee amount to claim in µUSDC */
-                            amount: number;
-                            /** @description Chain to claim on */
-                            chain: string;
-                            /** @description Address receiving the payout */
-                            signerAddress: string;
-                        };
-                    };
-                };
-                /** @description Bad request - no fees to claim or invalid request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            error: string;
-                        };
-                    };
-                };
-                /** @description Failed */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            error: string;
-                        };
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/schedule-withdraw": {
         parameters: {
             query?: never;
@@ -580,6 +494,211 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/dev/info": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description JSON-encoded auth payload: { devAccountId, action, expiry, signature }. Signature is EIP-712 typed data signed by the dev account signer. */
+                    "x-dev-auth": string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Dev account information */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @description Dev account ID */
+                            id: string;
+                            /** @description Dev account name */
+                            name: string;
+                            /** @description Dev account email */
+                            email: string;
+                            /** @description Gross fee in basis points (100 = 1%) */
+                            grossFeeBps: number;
+                            /** @description Gross base fee per trade in µUSDC */
+                            grossBaseFeeUusdc: number;
+                            /** @description Bison fee cut in basis points (100 = 1% of gross fee) */
+                            bisonFeeCutBps: number;
+                            /** @description Chain for fee payouts */
+                            payoutChain: string;
+                            /** @description Address receiving fee payouts */
+                            signerAddress: string;
+                            /** @description Account creation timestamp (ISO 8601) */
+                            createdAt: string;
+                        };
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/dev/fees": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description JSON-encoded auth payload: { devAccountId, action, expiry, signature }. Signature is EIP-712 typed data signed by the dev account signer. */
+                    "x-dev-auth": string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Dev account fee balances */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @description Dev account ID */
+                            id: string;
+                            /** @description Dev account name */
+                            name: string;
+                            /** @description Fees pending confirmation (µUSDC) */
+                            pendingFeesUusdc: number;
+                            /** @description Fees locked for payout (µUSDC) */
+                            lockedFeesUusdc: number;
+                            /** @description Fees available to claim (µUSDC) */
+                            unclaimedFeesUusdc: number;
+                            /** @description Chain for fee payouts */
+                            payoutChain: string;
+                            /** @description Address receiving fee payouts */
+                            signerAddress: string;
+                        };
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/dev/fee-claim-authorization": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description JSON-encoded auth payload: { devAccountId, action, expiry, signature }. Signature is EIP-712 typed data signed by the dev account signer. */
+                    "x-dev-auth": string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Fee authorization generated successfully */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @description Unique authorization ID */
+                            uuid: string;
+                            /** @description EIP-712 signature for the authorization */
+                            signature: string;
+                            /** @description Unix timestamp when authorization expires */
+                            expiresAt: number;
+                            /** @description Fee amount to claim in µUSDC */
+                            amount: number;
+                            /** @description Chain to claim on */
+                            chain: string;
+                            /** @description Address receiving the payout */
+                            signerAddress: string;
+                        };
+                    };
+                };
+                /** @description Bad request - no fees to claim or invalid request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
