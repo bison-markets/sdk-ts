@@ -163,6 +163,35 @@ export type OrderbookUpdate = OrderbookSnapshot | OrderbookDelta;
 // Module-level cache for /info responses, keyed by baseUrl
 const infoCache = new Map<string, GetInfoResponse>();
 
+function formatApiError(fallbackMsg: string, error: unknown): Error {
+  if (!error || typeof error !== 'object') {
+    return new Error(fallbackMsg);
+  }
+
+  const errObj = error as Record<string, unknown>;
+  const parts: string[] = [];
+
+  if (errObj.error && typeof errObj.error === 'string') {
+    parts.push(errObj.error);
+  } else {
+    parts.push(fallbackMsg);
+  }
+
+  if (typeof errObj.status === 'number') {
+    parts.push(`(HTTP ${errObj.status.toString()})`);
+  }
+
+  if (errObj.message && typeof errObj.message === 'string' && errObj.message !== errObj.error) {
+    parts.push(`- ${errObj.message}`);
+  }
+
+  if (errObj.details) {
+    parts.push(`- Details: ${JSON.stringify(errObj.details)}`);
+  }
+
+  return new Error(parts.join(' '));
+}
+
 const DEV_AUTH_DOMAIN = {
   name: 'BisonDevAuth',
   version: '1',
@@ -256,8 +285,7 @@ export class BisonClient {
     });
 
     if (error) {
-      const errorMsg = (error as { error?: string }).error ?? 'Failed to get token authorization';
-      throw new Error(errorMsg);
+      throw formatApiError('Failed to get token authorization', error);
     } else if (typeof data === 'undefined') {
       throw new Error('No data returned from getTokenAuthorization');
     }
@@ -273,9 +301,7 @@ export class BisonClient {
     });
 
     if (typeof error !== 'undefined') {
-      const errorMsg =
-        (error as { error?: string }).error ?? 'Failed to get withdraw authorization';
-      throw new Error(errorMsg);
+      throw formatApiError('Failed to get withdraw authorization', error);
     } else if (typeof data === 'undefined') {
       throw new Error('No data returned from getWithdrawAuthorization');
     }
@@ -295,9 +321,7 @@ export class BisonClient {
     });
 
     if (typeof error !== 'undefined') {
-      const errorMsg =
-        (error as { error?: string }).error ?? 'Failed to get fee claim authorization';
-      throw new Error(errorMsg);
+      throw formatApiError('Failed to get fee claim authorization', error);
     } else if (typeof data === 'undefined') {
       throw new Error('No data returned from getFeeClaimAuthorization');
     }
@@ -317,8 +341,7 @@ export class BisonClient {
     });
 
     if (typeof error !== 'undefined') {
-      const errorMsg = (error as { error?: string }).error ?? 'Failed to get dev account fees';
-      throw new Error(errorMsg);
+      throw formatApiError('Failed to get dev account fees', error);
     } else if (typeof data === 'undefined') {
       throw new Error('No data returned from getDevAccountFees');
     }
@@ -338,8 +361,7 @@ export class BisonClient {
     });
 
     if (typeof error !== 'undefined') {
-      const errorMsg = (error as { error?: string }).error ?? 'Failed to get dev account info';
-      throw new Error(errorMsg);
+      throw formatApiError('Failed to get dev account info', error);
     } else if (typeof data === 'undefined') {
       throw new Error('No data returned from getDevAccountInfo');
     }
@@ -360,8 +382,7 @@ export class BisonClient {
     });
 
     if (error) {
-      const errorMsg = (error as { error?: string }).error ?? 'Failed to place order';
-      throw new Error(errorMsg);
+      throw formatApiError('Failed to place order', error);
     } else if (typeof data === 'undefined') {
       throw new Error('No data returned from placeOrder');
     }
@@ -376,10 +397,8 @@ export class BisonClient {
       },
     });
 
-    if (error?.error) {
-      throw new Error((error as { error?: string }).error ?? 'Failed to get event');
-    } else if (!data) {
-      throw new Error('No data returned from getEvent');
+    if (error) {
+      throw formatApiError('Failed to get event', error);
     }
 
     return data;
@@ -393,8 +412,7 @@ export class BisonClient {
     });
 
     if (error) {
-      const errorMsg = (error as { error?: string }).error ?? 'Failed to get event metadata';
-      throw new Error(errorMsg);
+      throw formatApiError('Failed to get event metadata', error);
     } else if (typeof data === 'undefined') {
       throw new Error('No data returned from getEventMetadata');
     }
@@ -406,7 +424,7 @@ export class BisonClient {
     const { data, error } = await this.client.GET('/info');
 
     if (typeof error !== 'undefined') {
-      throw new Error('Failed to get system info: ', error);
+      throw formatApiError('Failed to get system info', error);
     } else if (typeof data === 'undefined') {
       throw new Error('No data returned from getInfo');
     }
@@ -421,8 +439,8 @@ export class BisonClient {
       },
     });
 
-    if (error?.error) {
-      throw new Error('Failed to get deposited USDC balance');
+    if (error) {
+      throw formatApiError('Failed to get deposited USDC balance', error);
     } else if (typeof data === 'undefined') {
       throw new Error('No data returned from getDepositedUsdcBalance');
     }
@@ -440,10 +458,8 @@ export class BisonClient {
       },
     });
 
-    if (error?.error) {
-      throw new Error((error as { error?: string }).error ?? 'Failed to get user orders');
-    } else if (!data) {
-      throw new Error('No data returned from getUserOrders');
+    if (error) {
+      throw formatApiError('Failed to get user orders', error);
     }
 
     return data;
@@ -456,8 +472,8 @@ export class BisonClient {
       },
     });
 
-    if (error?.error) {
-      throw new Error((error as { error?: string }).error ?? 'Failed to get user positions');
+    if (error) {
+      throw formatApiError('Failed to get user positions', error);
     } else if (typeof data === 'undefined') {
       throw new Error('No data returned from getUserPositions');
     }
@@ -472,7 +488,7 @@ export class BisonClient {
     );
 
     if (typeof error !== 'undefined') {
-      throw new Error('Failed to get created tokens: ', error);
+      throw formatApiError('Failed to get created tokens', error);
     } else if (typeof data === 'undefined') {
       throw new Error('No data returned from getCreatedTokens');
     }
@@ -491,10 +507,8 @@ export class BisonClient {
       params ? { params: { query: params } } : {},
     );
 
-    if (error?.error) {
-      throw new Error((error as { error?: string }).error ?? 'Failed to get markets');
-    } else if (!data) {
-      throw new Error('No data returned from getMarkets');
+    if (error) {
+      throw formatApiError('Failed to get markets', error);
     }
 
     return data;
@@ -1029,9 +1043,8 @@ export class BisonClient {
       },
     });
 
-    if (error?.error) {
-      const errorMsg = (error as { error?: string }).error ?? 'Failed to cancel order';
-      throw new Error(errorMsg);
+    if (error) {
+      throw formatApiError('Failed to cancel order', error);
     }
 
     console.log('Order cancellation requested:', data);
@@ -1241,8 +1254,7 @@ export class BisonClient {
     });
 
     if (error) {
-      const errorMsg = (error as { error?: string }).error ?? 'Failed to schedule withdraw';
-      throw new Error(errorMsg);
+      throw formatApiError('Failed to schedule withdraw', error);
     } else if (typeof data === 'undefined') {
       throw new Error('No data returned from scheduleWithdraw');
     }
@@ -1264,8 +1276,8 @@ export class BisonClient {
       },
     });
 
-    if (error?.error) {
-      throw new Error((error as { error?: string }).error ?? 'Failed to get pending withdraws');
+    if (error) {
+      throw formatApiError('Failed to get pending withdraws', error);
     } else if (typeof data === 'undefined') {
       throw new Error('No data returned from getPendingWithdraws');
     }
