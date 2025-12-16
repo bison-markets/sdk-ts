@@ -120,6 +120,9 @@ export type GetDevAccountFeesResponse =
 export type GetDevAccountInfoResponse =
   OpenAPIPaths['/dev/info']['get']['responses']['200']['content']['application/json'];
 
+export type GetDevFeeClaimHistoryResponse =
+  OpenAPIPaths['/dev/fee-claim-history']['get']['responses']['200']['content']['application/json'];
+
 export interface ChainInfo {
   vaultAddress: `0x${string}`;
   usdcAddress: `0x${string}`;
@@ -364,6 +367,35 @@ export class BisonClient {
       throw formatApiError('Failed to get dev account info', error);
     } else if (typeof data === 'undefined') {
       throw new Error('No data returned from getDevAccountInfo');
+    }
+
+    return data;
+  }
+
+  async getDevFeeClaimHistory(params?: {
+    limit?: number;
+    cursor?: string;
+  }): Promise<GetDevFeeClaimHistoryResponse> {
+    if (!this.devFlags) {
+      throw new Error('devFlags required for getDevFeeClaimHistory');
+    }
+
+    const authHeader = await this.signDevAuth('fee-claim-history');
+
+    const { data, error } = await this.client.GET('/dev/fee-claim-history', {
+      params: {
+        header: { 'x-dev-auth': authHeader },
+        query: {
+          ...(params?.limit !== undefined && { limit: params.limit.toString() }),
+          ...(params?.cursor !== undefined && { cursor: params.cursor }),
+        },
+      },
+    });
+
+    if (typeof error !== 'undefined') {
+      throw formatApiError('Failed to get fee claim history', error);
+    } else if (typeof data === 'undefined') {
+      throw new Error('No data returned from getDevFeeClaimHistory');
     }
 
     return data;

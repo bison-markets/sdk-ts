@@ -705,6 +705,73 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/dev/fee-claim-history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Max claims to return (default 50) */
+                    limit?: string;
+                    /** @description Pagination cursor (claim ID) */
+                    cursor?: string;
+                };
+                header: {
+                    /** @description JSON-encoded auth payload: { devAccountId, action, expiry, signature }. Signature is EIP-712 typed data signed by the dev account signer. */
+                    "x-dev-auth": string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Fee claim history */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            claims: {
+                                id: string;
+                                chain: string;
+                                amountUusdc: number;
+                                payoutAddress: string;
+                                claimedAt: string;
+                            }[];
+                            pagination: {
+                                total: number;
+                                hasMore: boolean;
+                                nextCursor?: string;
+                            };
+                        };
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/kalshi/markets": {
         parameters: {
             query?: never;
