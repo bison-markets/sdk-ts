@@ -139,6 +139,19 @@ export type GetUserPnlParams = Omit<
 export type GetUserPnlResponse =
   OpenAPIPaths['/user/pnl']['get']['responses']['200']['content']['application/json'];
 
+// Convenience types for common patterns
+export type Side = 'yes' | 'no';
+export type OrderAction = 'buy' | 'sell';
+export type OrderStatus = 'pending' | 'filled' | 'cancelled';
+export type WithdrawStatus = 'pending' | 'fill-locked' | 'unclaimed' | 'claimed';
+
+// Individual item types derived from response arrays
+export type UserPosition = GetUserPositionsResponse['positions'][number];
+export type UserOrder = GetUserOrdersResponse['orders'][number];
+export type HistoryRecord = GetUserHistoryResponse['records'][number];
+export type PendingWithdraw = GetPendingWithdrawsResponse['withdraws'][number];
+export type CreatedToken = GetCreatedTokensResponse['tokens'][number];
+
 export interface ChainInfo {
   vaultAddress: `0x${string}`;
   usdcAddress: `0x${string}`;
