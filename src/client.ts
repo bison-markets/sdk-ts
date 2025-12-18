@@ -584,6 +584,7 @@ export class BisonClient {
     event_ticker?: string;
     status?: 'active' | 'closed' | 'settled';
     limit?: string;
+    query?: string;
   }): Promise<GetMarketsResponse> {
     const { data, error } = await this.client.GET(
       '/kalshi/markets',
