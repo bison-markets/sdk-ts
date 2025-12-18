@@ -101,6 +101,9 @@ export type GetCreatedTokensResponse =
 export type GetMarketsResponse =
   OpenAPIPaths['/kalshi/markets']['get']['responses']['200']['content']['application/json'];
 
+export type GetEventsResponse =
+  OpenAPIPaths['/kalshi/events']['get']['responses']['200']['content']['application/json'];
+
 export type ScheduleWithdrawRequest = NonNullable<
   OpenAPIPaths['/schedule-withdraw']['post']['requestBody']
 >['content']['application/json'];
@@ -597,7 +600,6 @@ export class BisonClient {
     event_ticker?: string;
     status?: 'active' | 'closed' | 'settled';
     limit?: string;
-    query?: string;
   }): Promise<GetMarketsResponse> {
     const { data, error } = await this.client.GET(
       '/kalshi/markets',
@@ -606,6 +608,25 @@ export class BisonClient {
 
     if (error) {
       throw formatApiError('Failed to get markets', error);
+    }
+
+    return data;
+  }
+
+  async getEvents(params?: {
+    series_ticker?: string;
+    limit?: string;
+    query?: string;
+  }): Promise<GetEventsResponse> {
+    const { data, error } = await this.client.GET(
+      '/kalshi/events',
+      params ? { params: { query: params } } : {},
+    );
+
+    if (typeof error !== 'undefined') {
+      throw formatApiError('Failed to get events', error);
+    } else if (typeof data === 'undefined') {
+      throw new Error('No data returned from getEvents');
     }
 
     return data;

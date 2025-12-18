@@ -500,6 +500,192 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/user/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query: {
+                    /** @description User wallet address */
+                    userId: string;
+                    /** @description Filter by transaction type */
+                    type?: "fill" | "settlement" | "deposit" | "withdraw";
+                    /** @description Filter by market ID (only applies to fills and settlements) */
+                    marketId?: string;
+                    /** @description Start timestamp (ms) */
+                    startTime?: number | null;
+                    /** @description End timestamp (ms) */
+                    endTime?: number | null;
+                    /** @description Max records per page (default: 50, max: 200) */
+                    limit?: number;
+                    /** @description Pagination cursor from previous response */
+                    cursor?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description User transaction history */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            records: ({
+                                /** @enum {string} */
+                                type: "fill";
+                                id: string;
+                                orderId: string;
+                                tradeId: string;
+                                marketId: string;
+                                /** @enum {string} */
+                                side: "yes" | "no";
+                                /** @enum {string} */
+                                action: "buy" | "sell";
+                                quantity: number;
+                                priceUusdc: number;
+                                totalUusdc: number;
+                                feeUusdc: number;
+                                timestamp: number;
+                            } | {
+                                /** @enum {string} */
+                                type: "settlement";
+                                id: string;
+                                marketId: string;
+                                /** @enum {string} */
+                                side: "yes" | "no";
+                                quantity: number;
+                                payoutUusdc: number;
+                                /** @enum {string} */
+                                result: "yes" | "no";
+                                timestamp: number;
+                            } | {
+                                /** @enum {string} */
+                                type: "deposit";
+                                id: string;
+                                chain: string;
+                                txHash: string;
+                                amountUusdc: number;
+                                timestamp: number;
+                            } | {
+                                /** @enum {string} */
+                                type: "withdraw";
+                                id: string;
+                                chain: string;
+                                amountUusdc: number;
+                                /** @enum {string} */
+                                status: "pending" | "fill-locked" | "unclaimed" | "claimed";
+                                timestamp: number;
+                            })[];
+                            pagination: {
+                                hasMore: boolean;
+                                nextCursor?: string;
+                            };
+                        };
+                    };
+                };
+                /** @description Invalid request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/user/pnl": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query: {
+                    /** @description User wallet address */
+                    userId: string;
+                    /** @description Filter by market ID */
+                    marketId?: string;
+                    /** @description Start timestamp (ms) */
+                    startTime?: number | null;
+                    /** @description End timestamp (ms) */
+                    endTime?: number | null;
+                    /** @description Time-series granularity (default: all - no time series) */
+                    granularity?: "hour" | "day" | "all";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description User PNL summary */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @description Total deposits in µUSDC */
+                            totalDeposits: number;
+                            /** @description Total withdrawals in µUSDC */
+                            totalWithdrawals: number;
+                            /** @description Realized PNL in µUSDC */
+                            realizedPnl: number;
+                            /** @description Unrealized PNL in µUSDC (estimated) */
+                            unrealizedPnl: number;
+                            /** @description Net PNL (realized + unrealized) in µUSDC */
+                            netPnl: number;
+                            /** @description Total fees paid in µUSDC */
+                            totalFeesPaid: number;
+                            timeSeries?: {
+                                timestamp: number;
+                                cumulativePnl: number;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Invalid request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/dev/info": {
         parameters: {
             query?: never;
@@ -790,6 +976,8 @@ export interface paths {
                     status?: "active" | "closed" | "settled";
                     /** @description Number of markets to return (max 200) */
                     limit?: string;
+                    /** @description Search markets by title, subtitle, ticker, or category (results sorted by match relevance) */
+                    query?: string;
                 };
                 header?: never;
                 path?: never;
@@ -1192,6 +1380,71 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/kalshi/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Filter by series ticker */
+                    series_ticker?: string;
+                    /** @description Filter by event status */
+                    status?: "open" | "closed" | "settled";
+                    /** @description Number of events to return (max 200) */
+                    limit?: string;
+                    /** @description Search events by title, subtitle, or ticker (results sorted by match relevance) */
+                    query?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Successfully retrieved events */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            events: {
+                                event_ticker: string;
+                                series_ticker?: string;
+                                title?: string;
+                                sub_title?: string;
+                                /** @enum {string} */
+                                status?: "open" | "closed" | "settled";
+                            }[];
+                            cursor?: string;
+                        };
+                    };
+                };
+                /** @description Internal server error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/kalshi/order/limit": {
         parameters: {
             query?: never;
@@ -1431,211 +1684,6 @@ export interface paths {
                 };
             };
         };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/user/history": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
-            parameters: {
-                query?: {
-                    /**
-                     * @description User wallet address
-                     * @example 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
-                     */
-                    userId: string;
-                    /**
-                     * @description Filter by transaction type
-                     * @enum {string}
-                     */
-                    type?: "fill" | "settlement" | "deposit" | "withdraw";
-                    /**
-                     * @description Filter by market ID (only applies to fills and settlements)
-                     */
-                    marketId?: string;
-                    /**
-                     * @description Start timestamp (ms)
-                     */
-                    startTime?: number;
-                    /**
-                     * @description End timestamp (ms)
-                     */
-                    endTime?: number;
-                    /**
-                     * @description Max records per page (default: 50, max: 200)
-                     */
-                    limit?: number;
-                    /**
-                     * @description Pagination cursor from previous response
-                     */
-                    cursor?: string;
-                };
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description User transaction history */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            records: ({
-                                type: "fill";
-                                id: string;
-                                orderId: string;
-                                tradeId: string;
-                                marketId: string;
-                                side: "yes" | "no";
-                                action: "buy" | "sell";
-                                quantity: number;
-                                priceUusdc: number;
-                                totalUusdc: number;
-                                feeUusdc: number;
-                                timestamp: number;
-                            } | {
-                                type: "settlement";
-                                id: string;
-                                marketId: string;
-                                side: "yes" | "no";
-                                quantity: number;
-                                payoutUusdc: number;
-                                result: "yes" | "no";
-                                timestamp: number;
-                            } | {
-                                type: "deposit";
-                                id: string;
-                                chain: string;
-                                txHash: string;
-                                amountUusdc: number;
-                                timestamp: number;
-                            } | {
-                                type: "withdraw";
-                                id: string;
-                                chain: string;
-                                amountUusdc: number;
-                                status: "pending" | "fill-locked" | "unclaimed" | "claimed";
-                                timestamp: number;
-                            })[];
-                            pagination: {
-                                hasMore: boolean;
-                                nextCursor?: string;
-                            };
-                        };
-                    };
-                };
-                /** @description Invalid request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            error: string;
-                        };
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/user/pnl": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
-            parameters: {
-                query?: {
-                    /**
-                     * @description User wallet address
-                     * @example 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
-                     */
-                    userId: string;
-                    /**
-                     * @description Filter by market ID
-                     */
-                    marketId?: string;
-                    /**
-                     * @description Start timestamp (ms)
-                     */
-                    startTime?: number;
-                    /**
-                     * @description End timestamp (ms)
-                     */
-                    endTime?: number;
-                    /**
-                     * @description Time-series granularity (default: all - no time series)
-                     * @enum {string}
-                     */
-                    granularity?: "hour" | "day" | "all";
-                };
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description User PNL summary */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** @description Total deposits in µUSDC */
-                            totalDeposits: number;
-                            /** @description Total withdrawals in µUSDC */
-                            totalWithdrawals: number;
-                            /** @description Realized PNL in µUSDC */
-                            realizedPnl: number;
-                            /** @description Unrealized PNL in µUSDC (estimated) */
-                            unrealizedPnl: number;
-                            /** @description Net PNL (realized + unrealized) in µUSDC */
-                            netPnl: number;
-                            /** @description Total fees paid in µUSDC */
-                            totalFeesPaid: number;
-                            timeSeries?: {
-                                timestamp: number;
-                                cumulativePnl: number;
-                            }[];
-                        };
-                    };
-                };
-                /** @description Invalid request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            error: string;
-                        };
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
         delete?: never;
         options?: never;
         head?: never;
