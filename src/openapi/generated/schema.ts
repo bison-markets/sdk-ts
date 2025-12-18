@@ -1437,6 +1437,211 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/user/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    /**
+                     * @description User wallet address
+                     * @example 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
+                     */
+                    userId: string;
+                    /**
+                     * @description Filter by transaction type
+                     * @enum {string}
+                     */
+                    type?: "fill" | "settlement" | "deposit" | "withdraw";
+                    /**
+                     * @description Filter by market ID (only applies to fills and settlements)
+                     */
+                    marketId?: string;
+                    /**
+                     * @description Start timestamp (ms)
+                     */
+                    startTime?: number;
+                    /**
+                     * @description End timestamp (ms)
+                     */
+                    endTime?: number;
+                    /**
+                     * @description Max records per page (default: 50, max: 200)
+                     */
+                    limit?: number;
+                    /**
+                     * @description Pagination cursor from previous response
+                     */
+                    cursor?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description User transaction history */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            records: ({
+                                type: "fill";
+                                id: string;
+                                orderId: string;
+                                tradeId: string;
+                                marketId: string;
+                                side: "yes" | "no";
+                                action: "buy" | "sell";
+                                quantity: number;
+                                priceUusdc: number;
+                                totalUusdc: number;
+                                feeUusdc: number;
+                                timestamp: number;
+                            } | {
+                                type: "settlement";
+                                id: string;
+                                marketId: string;
+                                side: "yes" | "no";
+                                quantity: number;
+                                payoutUusdc: number;
+                                result: "yes" | "no";
+                                timestamp: number;
+                            } | {
+                                type: "deposit";
+                                id: string;
+                                chain: string;
+                                txHash: string;
+                                amountUusdc: number;
+                                timestamp: number;
+                            } | {
+                                type: "withdraw";
+                                id: string;
+                                chain: string;
+                                amountUusdc: number;
+                                status: "pending" | "fill-locked" | "unclaimed" | "claimed";
+                                timestamp: number;
+                            })[];
+                            pagination: {
+                                hasMore: boolean;
+                                nextCursor?: string;
+                            };
+                        };
+                    };
+                };
+                /** @description Invalid request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/user/pnl": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    /**
+                     * @description User wallet address
+                     * @example 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
+                     */
+                    userId: string;
+                    /**
+                     * @description Filter by market ID
+                     */
+                    marketId?: string;
+                    /**
+                     * @description Start timestamp (ms)
+                     */
+                    startTime?: number;
+                    /**
+                     * @description End timestamp (ms)
+                     */
+                    endTime?: number;
+                    /**
+                     * @description Time-series granularity (default: all - no time series)
+                     * @enum {string}
+                     */
+                    granularity?: "hour" | "day" | "all";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description User PNL summary */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @description Total deposits in µUSDC */
+                            totalDeposits: number;
+                            /** @description Total withdrawals in µUSDC */
+                            totalWithdrawals: number;
+                            /** @description Realized PNL in µUSDC */
+                            realizedPnl: number;
+                            /** @description Unrealized PNL in µUSDC (estimated) */
+                            unrealizedPnl: number;
+                            /** @description Net PNL (realized + unrealized) in µUSDC */
+                            netPnl: number;
+                            /** @description Total fees paid in µUSDC */
+                            totalFeesPaid: number;
+                            timeSeries?: {
+                                timestamp: number;
+                                cumulativePnl: number;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Invalid request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {

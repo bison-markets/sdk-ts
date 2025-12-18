@@ -123,6 +123,22 @@ export type GetDevAccountInfoResponse =
 export type GetDevFeeClaimHistoryResponse =
   OpenAPIPaths['/dev/fee-claim-history']['get']['responses']['200']['content']['application/json'];
 
+export type GetUserHistoryParams = Omit<
+  NonNullable<OpenAPIPaths['/user/history']['get']['parameters']['query']>,
+  'userId'
+>;
+
+export type GetUserHistoryResponse =
+  OpenAPIPaths['/user/history']['get']['responses']['200']['content']['application/json'];
+
+export type GetUserPnlParams = Omit<
+  NonNullable<OpenAPIPaths['/user/pnl']['get']['parameters']['query']>,
+  'userId'
+>;
+
+export type GetUserPnlResponse =
+  OpenAPIPaths['/user/pnl']['get']['responses']['200']['content']['application/json'];
+
 export interface ChainInfo {
   vaultAddress: `0x${string}`;
   usdcAddress: `0x${string}`;
@@ -508,6 +524,41 @@ export class BisonClient {
       throw formatApiError('Failed to get user positions', error);
     } else if (typeof data === 'undefined') {
       throw new Error('No data returned from getUserPositions');
+    }
+
+    return data;
+  }
+
+  async getUserHistory(
+    userId: string,
+    params?: GetUserHistoryParams,
+  ): Promise<GetUserHistoryResponse> {
+    const { data, error } = await this.client.GET('/user/history', {
+      params: {
+        query: { userId, ...params },
+      },
+    });
+
+    if (error) {
+      throw formatApiError('Failed to get user history', error);
+    } else if (typeof data === 'undefined') {
+      throw new Error('No data returned from getUserHistory');
+    }
+
+    return data;
+  }
+
+  async getUserPnl(userId: string, params?: GetUserPnlParams): Promise<GetUserPnlResponse> {
+    const { data, error } = await this.client.GET('/user/pnl', {
+      params: {
+        query: { userId, ...params },
+      },
+    });
+
+    if (error) {
+      throw formatApiError('Failed to get user PNL', error);
+    } else if (typeof data === 'undefined') {
+      throw new Error('No data returned from getUserPnl');
     }
 
     return data;
