@@ -976,8 +976,6 @@ export interface paths {
                     status?: "active" | "closed" | "settled";
                     /** @description Number of markets to return (max 200) */
                     limit?: string;
-                    /** @description Search markets by title, subtitle, ticker, or category (results sorted by match relevance) */
-                    query?: string;
                 };
                 header?: never;
                 path?: never;
@@ -1392,8 +1390,6 @@ export interface paths {
                 query?: {
                     /** @description Filter by series ticker */
                     series_ticker?: string;
-                    /** @description Filter by event status */
-                    status?: "open" | "closed" | "settled";
                     /** @description Number of events to return (max 200) */
                     limit?: string;
                     /** @description Search events by title, subtitle, or ticker (results sorted by match relevance) */
@@ -1414,13 +1410,11 @@ export interface paths {
                         "application/json": {
                             events: {
                                 event_ticker: string;
-                                series_ticker?: string;
-                                title?: string;
-                                sub_title?: string;
-                                /** @enum {string} */
-                                status?: "open" | "closed" | "settled";
+                                series_ticker?: string | null;
+                                title?: string | null;
+                                sub_title?: string | null;
+                                category?: string | null;
                             }[];
-                            cursor?: string;
                         };
                     };
                 };
@@ -1684,6 +1678,91 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/kalshi/markets/{marketTicker}/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Start timestamp (Unix seconds). Defaults to 30 days ago. */
+                    start_ts?: number | null;
+                    /** @description End timestamp (Unix seconds). Defaults to now. */
+                    end_ts?: number | null;
+                    /** @description Candle interval in minutes. Defaults to 60 (1 hour). */
+                    period_interval?: number | null;
+                };
+                header?: never;
+                path: {
+                    /** @description Market ticker */
+                    marketTicker: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Price history for the market */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            history: {
+                                /** @description Unix timestamp (seconds) at end of period */
+                                timestamp: number;
+                                /** @description Mean YES price for the period (0-1 probability, VWAP) */
+                                yes_price: number;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Bad request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Market not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Internal server error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;

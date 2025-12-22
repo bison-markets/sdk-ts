@@ -104,6 +104,15 @@ export type GetMarketsResponse =
 export type GetEventsResponse =
   OpenAPIPaths['/kalshi/events']['get']['responses']['200']['content']['application/json'];
 
+export type GetMarketHistoryParams = NonNullable<
+  OpenAPIPaths['/kalshi/markets/{marketTicker}/history']['get']['parameters']['query']
+>;
+
+export type GetMarketHistoryResponse =
+  OpenAPIPaths['/kalshi/markets/{marketTicker}/history']['get']['responses']['200']['content']['application/json'];
+
+export type PricePoint = GetMarketHistoryResponse['history'][number];
+
 export type ScheduleWithdrawRequest = NonNullable<
   OpenAPIPaths['/schedule-withdraw']['post']['requestBody']
 >['content']['application/json'];
@@ -149,6 +158,10 @@ export type OrderStatus = 'pending' | 'filled' | 'cancelled';
 export type WithdrawStatus = 'pending' | 'fill-locked' | 'unclaimed' | 'claimed';
 
 // Individual item types derived from response arrays
+export type Market = GetMarketsResponse['markets'][number];
+export type KalshiEvent = GetEventsResponse['events'][number];
+export type EventMarket = GetEventResponse['markets'][number];
+export type EventMetadata = GetEventMetadataResponse['event'];
 export type UserPosition = GetUserPositionsResponse['positions'][number];
 export type UserOrder = GetUserOrdersResponse['orders'][number];
 export type HistoryRecord = GetUserHistoryResponse['records'][number];
@@ -627,6 +640,28 @@ export class BisonClient {
       throw formatApiError('Failed to get events', error);
     } else if (typeof data === 'undefined') {
       throw new Error('No data returned from getEvents');
+    }
+
+    return data;
+  }
+
+  async getMarketHistory(
+    marketTicker: string,
+    params?: {
+      start_ts?: number;
+      end_ts?: number;
+      period_interval?: number;
+    },
+  ): Promise<GetMarketHistoryResponse> {
+    const { data, error } = await this.client.GET('/kalshi/markets/{marketTicker}/history', {
+      params: {
+        path: { marketTicker },
+        query: params ?? {},
+      },
+    });
+
+    if (typeof error !== 'undefined') {
+      throw formatApiError('Failed to get market history', error);
     }
 
     return data;
