@@ -4,6 +4,7 @@ import type { WalletClient, PublicClient } from 'viem';
 import { maxUint256 } from 'viem';
 import { signTypedData } from 'viem/accounts';
 import { VAULT_ABI, ERC20_ABI } from './constants';
+import { parseBigIntFields, BIGINT_FIELDS } from './bigint';
 
 export interface DevFlags {
   privateKey: `0x${string}`;
@@ -22,8 +23,8 @@ export interface BisonOrderEvent {
   marketId: string;
   action: 'buy' | 'sell';
   side: 'yes' | 'no';
-  number: number;
-  priceUusdc: number;
+  number: bigint; // Changed to bigint for precision
+  priceUusdc: bigint; // Changed to bigint for precision
 }
 
 export interface BisonMarketEvent {
@@ -35,8 +36,8 @@ export interface BisonMarketEvent {
 export interface BisonUSDCEvent {
   type: 'usdc_deposited' | 'usdc_withdrawn';
   userAddress: string;
-  uusdcAmount: number;
-  newBalanceUusdc: number;
+  uusdcAmount: bigint; // Changed to bigint for precision
+  newBalanceUusdc: bigint; // Changed to bigint for precision
 }
 
 export interface BisonPositionEvent {
@@ -44,7 +45,7 @@ export interface BisonPositionEvent {
   userAddress: string;
   marketId: string;
   side: 'yes' | 'no';
-  number: number;
+  number: bigint; // Changed to bigint for precision
 }
 
 export type BisonEvent = BisonOrderEvent | BisonMarketEvent | BisonUSDCEvent | BisonPositionEvent;
@@ -712,7 +713,11 @@ export class BisonClient {
             data.type !== 'ping' &&
             data.type !== 'pong'
           ) {
-            onEvent(data as BisonEvent);
+            // Parse BigInt fields from string representation
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            const parsedData = parseBigIntFields(data, BIGINT_FIELDS);
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+            onEvent(parsedData);
           }
         } catch (error) {
           options?.onError?.(error as Error);
