@@ -1,6 +1,6 @@
 {
   "name": "@bison-markets/sdk-ts",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Bison Markets SDK (TypeScript)",
   "publishConfig": {
     "access": "public"
