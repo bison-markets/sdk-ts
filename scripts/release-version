@@ -1,0 +1,75 @@
+#!/bin/bash
+set -e
+
+if [ -z "$1" ]; then
+  echo "Usage: ./release-version <version>"
+  echo "Example: ./release-version 0.1.7"
+  exit 1
+fi
+
+VERSION="$1"
+
+# Validate semver format
+if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.-]+)?(\+[a-zA-Z0-9.-]+)?$ ]]; then
+  echo "Error: Invalid version format. Expected semver (e.g., 0.1.7, 1.0.0-beta.1)"
+  exit 1
+fi
+
+# Check if git working directory is clean
+if [ -n "$(git status --porcelain)" ]; then
+  echo "Error: Git working directory is not clean. Commit or stash changes first."
+  git status --short
+  exit 1
+fi
+
+# Check if jq is installed
+if ! command -v jq &> /dev/null; then
+  echo "Error: jq is required but not installed."
+  echo "Install with: brew install jq"
+  exit 1
+fi
+
+# Check if gh CLI is installed
+if ! command -v gh &> /dev/null; then
+  echo "Error: gh CLI is required but not installed."
+  echo "Install with: brew install gh"
+  exit 1
+fi
+
+echo "🚀 Releasing Bison SDK v$VERSION..."
+echo ""
+
+# Run build to ensure dist files are up to date
+echo "📦 Building SDK..."
+npm run build
+
+# Update package.json
+echo "📝 Updating package.json..."
+jq --arg version "$VERSION" '.version = $version' package.json > package.json.tmp
+mv package.json.tmp package.json
+
+# Stage changes
+git add package.json
+
+# Commit
+echo "💾 Committing changes..."
+git commit -m "v$VERSION"
+
+# Tag
+echo "🏷️  Creating tag v$VERSION..."
+git tag "v$VERSION"
+
+# Push commit and tag
+echo "⬆️  Pushing to origin..."
+git push origin master
+git push origin "v$VERSION"
+
+# Create GitHub release with auto-generated notes
+echo "📄 Creating GitHub release..."
+gh release create "v$VERSION" \
+  --title "v$VERSION" \
+  --generate-notes
+
+echo ""
+echo "✅ Successfully released v$VERSION"
+echo "📦 View release: https://github.com/bison-markets/sdk-ts/releases/tag/v$VERSION"
