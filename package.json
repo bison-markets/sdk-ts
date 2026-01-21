@@ -59,7 +59,7 @@
     "prettier": "^3.3.3",
     "tsup": "^8.3.5",
     "typescript": "^5.6.3",
-    "viem": "^2.43.1",
+    "viem": "^2.44.4",
     "vitest": "^2.1.4"
   },
   "dependencies": {
