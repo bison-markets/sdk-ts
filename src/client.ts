@@ -61,9 +61,20 @@ export type GetEventResponse =
 export type GetEventMetadataResponse =
   OpenAPIPaths['/get-event-metadata']['get']['responses']['200']['content']['application/json'];
 
-export type GetTokenAuthorizationRequest = NonNullable<
-  OpenAPIPaths['/get-token-authorization']['post']['requestBody']
->['content']['application/json'];
+/**
+ * Request to get authorization for minting/burning position tokens
+ *
+ * @property number - Number of contracts as a fixed-point string (e.g., "10.50")
+ */
+export type GetTokenAuthorizationRequest = Omit<
+  NonNullable<
+    OpenAPIPaths['/get-token-authorization']['post']['requestBody']
+  >['content']['application/json'],
+  'number'
+> & {
+  /** Number of contracts as a fixed-point string (e.g., "10.50") */
+  number: string;
+};
 
 export type GetTokenAuthorizationResponse =
   OpenAPIPaths['/get-token-authorization']['post']['responses']['200']['content']['application/json'];
@@ -75,9 +86,23 @@ export type GetWithdrawAuthorizationRequest = NonNullable<
 export type GetWithdrawAuthorizationResponse =
   OpenAPIPaths['/get-withdraw-authorization']['post']['responses']['200']['content']['application/json'];
 
-export type PlaceOrderRequest = NonNullable<
-  OpenAPIPaths['/kalshi/order/limit']['post']['requestBody']
->['content']['application/json'];
+/**
+ * Request to place a limit order on Kalshi
+ *
+ * @property number - Number of contracts as a fixed-point string (e.g., "10", "10.5", "10.50")
+ * @property priceUusdc - Price per contract in µUSDC as an integer string (e.g., "750000" for $0.75)
+ */
+export type PlaceOrderRequest = Omit<
+  NonNullable<
+    OpenAPIPaths['/kalshi/order/limit']['post']['requestBody']
+  >['content']['application/json'],
+  'number' | 'priceUusdc'
+> & {
+  /** Number of contracts as a fixed-point string (e.g., "10.50") */
+  number: string;
+  /** Price per contract in µUSDC as an integer string (e.g., "750000") */
+  priceUusdc: string;
+};
 
 export type PlaceOrderResponse =
   OpenAPIPaths['/kalshi/order/limit']['post']['responses']['200']['content']['application/json'];
@@ -114,9 +139,20 @@ export type GetMarketHistoryResponse =
 
 export type PricePoint = GetMarketHistoryResponse['history'][number];
 
-export type ScheduleWithdrawRequest = NonNullable<
-  OpenAPIPaths['/schedule-withdraw']['post']['requestBody']
->['content']['application/json'];
+/**
+ * Request to schedule a withdrawal
+ *
+ * @property amountUusdc - Amount to withdraw in µUSDC as an integer string (e.g., "1000000" for 1 USDC)
+ */
+export type ScheduleWithdrawRequest = Omit<
+  NonNullable<
+    OpenAPIPaths['/schedule-withdraw']['post']['requestBody']
+  >['content']['application/json'],
+  'amountUusdc'
+> & {
+  /** Amount to withdraw in µUSDC as an integer string (e.g., "1000000") */
+  amountUusdc: string;
+};
 
 export type ScheduleWithdrawResponse =
   OpenAPIPaths['/schedule-withdraw']['post']['responses']['200']['content']['application/json'];
@@ -456,7 +492,9 @@ export class BisonClient {
     }
 
     const { data, error } = await this.client.POST('/kalshi/order/limit', {
-      body: requestBody as PlaceOrderRequest,
+      body: requestBody as unknown as NonNullable<
+        OpenAPIPaths['/kalshi/order/limit']['post']['requestBody']
+      >['content']['application/json'],
     });
 
     if (error) {
@@ -965,6 +1003,11 @@ export class BisonClient {
     };
   }
 
+  /**
+   * Execute a complete buy flow: sign order authorization and place order
+   * @param params.number - Number of contracts as a fixed-point string (e.g., "10.50")
+   * @param params.priceUusdc - Price per contract in µUSDC as an integer string (e.g., "750000")
+   */
   async executeBuyFlow(params: {
     walletClient: WalletClient;
     publicClient: PublicClient;
@@ -972,8 +1015,10 @@ export class BisonClient {
     chain: SupportedChain;
     marketId: string;
     side: 'yes' | 'no';
-    number: number;
-    priceUusdc: number;
+    /** Number of contracts as a fixed-point string (e.g., "10.50") */
+    number: string;
+    /** Price per contract in µUSDC as an integer string (e.g., "750000") */
+    priceUusdc: string;
     onEvent?: (event: BisonEvent) => void;
     onError?: (error: Error) => void;
   }): Promise<{ disconnect: () => void; txHash: `0x${string}` | null }> {
@@ -1033,7 +1078,7 @@ export class BisonClient {
       chain: chain as 'base',
       marketId,
       number,
-      priceUusdc: priceUusdc,
+      priceUusdc,
       action: 'buy',
       side,
       userAddress,
@@ -1058,6 +1103,11 @@ export class BisonClient {
     return { disconnect, txHash: null };
   }
 
+  /**
+   * Execute a complete sell flow: sign order authorization and place order
+   * @param params.number - Number of contracts as a fixed-point string (e.g., "10.50")
+   * @param params.priceUusdc - Price per contract in µUSDC as an integer string (e.g., "750000")
+   */
   async executeSellFlow(params: {
     walletClient: WalletClient;
     publicClient: PublicClient;
@@ -1065,8 +1115,10 @@ export class BisonClient {
     chain: SupportedChain;
     marketId: string;
     side: 'yes' | 'no';
-    number: number;
-    priceUusdc: number;
+    /** Number of contracts as a fixed-point string (e.g., "10.50") */
+    number: string;
+    /** Price per contract in µUSDC as an integer string (e.g., "750000") */
+    priceUusdc: string;
     onEvent?: (event: BisonEvent) => void;
     onError?: (error: Error) => void;
   }): Promise<{ disconnect: () => void; txHash: `0x${string}` | null }> {
@@ -1126,7 +1178,7 @@ export class BisonClient {
       chain: chain as 'base',
       marketId,
       number,
-      priceUusdc: priceUusdc,
+      priceUusdc,
       action: 'sell',
       side,
       userAddress,
@@ -1208,6 +1260,10 @@ export class BisonClient {
     console.log('Order cancellation requested:', data);
   }
 
+  /**
+   * Execute a complete mint flow: get authorization and mint position tokens
+   * @param params.number - Number of contracts as a fixed-point string (e.g., "10.50")
+   */
   async executeMintFlow(params: {
     walletClient: WalletClient;
     publicClient: PublicClient;
@@ -1215,7 +1271,8 @@ export class BisonClient {
     chain: SupportedChain;
     marketId: string;
     side: 'yes' | 'no';
-    number: number;
+    /** Number of contracts as a fixed-point string (e.g., "10.50") */
+    number: string;
   }): Promise<{ txHash: `0x${string}` }> {
     const { walletClient, publicClient, userAddress, chain, marketId, side, number } = params;
 
@@ -1253,6 +1310,10 @@ export class BisonClient {
     return { txHash: mintTxHash };
   }
 
+  /**
+   * Execute a complete burn flow: get authorization and burn position tokens
+   * @param params.number - Number of contracts as a fixed-point string (e.g., "10.50")
+   */
   async executeBurnFlow(params: {
     walletClient: WalletClient;
     publicClient: PublicClient;
@@ -1260,7 +1321,8 @@ export class BisonClient {
     chain: SupportedChain;
     marketId: string;
     side: 'yes' | 'no';
-    number: number;
+    /** Number of contracts as a fixed-point string (e.g., "10.50") */
+    number: string;
   }): Promise<{ txHash: `0x${string}` }> {
     const { walletClient, publicClient, userAddress, chain, marketId, side, number } = params;
 
@@ -1299,12 +1361,17 @@ export class BisonClient {
     return { txHash: burnTxHash };
   }
 
+  /**
+   * Execute a complete deposit flow: approve USDC and deposit to vault
+   * @param params.amountUusdc - Amount to deposit in µUSDC as an integer string (e.g., "1000000")
+   */
   async executeDepositFlow(params: {
     walletClient: WalletClient;
     publicClient: PublicClient;
     userAddress: `0x${string}`;
     chain: SupportedChain;
-    amountUusdc: number;
+    /** Amount to deposit in µUSDC as an integer string (e.g., "1000000") */
+    amountUusdc: string;
   }): Promise<`0x${string}`> {
     const { walletClient, publicClient, userAddress, chain, amountUusdc } = params;
 
@@ -1356,11 +1423,16 @@ export class BisonClient {
     return txHash;
   }
 
+  /**
+   * Schedule a withdrawal from the vault
+   * @param params.amountUusdc - Amount to withdraw in µUSDC as an integer string (e.g., "1000000")
+   */
   async scheduleWithdraw(params: {
     walletClient: WalletClient;
     userAddress: `0x${string}`;
     chain: SupportedChain;
-    amountUusdc: number;
+    /** Amount to withdraw in µUSDC as an integer string (e.g., "1000000") */
+    amountUusdc: string;
   }): Promise<ScheduleWithdrawResponse> {
     const { walletClient, userAddress, chain, amountUusdc } = params;
 
@@ -1408,7 +1480,9 @@ export class BisonClient {
         amountUusdc,
         signature,
         expiry,
-      },
+      } as unknown as NonNullable<
+        OpenAPIPaths['/schedule-withdraw']['post']['requestBody']
+      >['content']['application/json'],
     });
 
     if (error) {

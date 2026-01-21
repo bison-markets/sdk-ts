@@ -117,10 +117,10 @@ export interface paths {
                          */
                         marketId: string;
                         /**
-                         * @description Number of contracts
-                         * @example 100
+                         * @description Number of contracts as a string (e.g., "10", "10.5", "10.50"). Must match the market's contract precision.
+                         * @example 10.50
                          */
-                        number: number;
+                        number: string;
                         /**
                          * @description Action to execute; one of: mint (mint tokens), burn (burn tokens)
                          * @example mint
@@ -281,7 +281,11 @@ export interface paths {
                         userAddress: string;
                         /** @enum {string} */
                         chain: "base" | "bsc";
-                        amountUusdc: number;
+                        /**
+                         * @description Amount to withdraw in µUSDC (micro-USDC, 1 µUSDC = 0.000001 USD). Must be a positive integer string.
+                         * @example 1000000
+                         */
+                        amountUusdc: string;
                         signature: string;
                         expiry: number;
                     };
@@ -1470,15 +1474,15 @@ export interface paths {
                          */
                         marketId: string;
                         /**
-                         * @description Number of contracts
-                         * @example 100
+                         * @description Number of contracts as a string (e.g., "10", "10.5", "10.50"). Will be scaled based on market precision.
+                         * @example 10.50
                          */
-                        number: number;
+                        number: string;
                         /**
-                         * @description Price per contract in µUSDC (1-1000000)
+                         * @description Price per contract in µUSDC (micro-USDC, 1 µUSDC = 0.000001 USD). Must be a positive integer string.
                          * @example 750000
                          */
-                        priceUusdc: number;
+                        priceUusdc: string;
                         /**
                          * @description Action to execute
                          * @example buy

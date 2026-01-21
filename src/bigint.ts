@@ -128,6 +128,53 @@ export function formatUusdcDisplay(uusdc: bigint | string | number, decimals = 2
 /**
  * Common field names that contain BigInt values in Bison API responses
  */
+
+/**
+ * Converts a fixed-point string to a scaled bigint quantity.
+ * @param fixedPoint - The fixed-point string (e.g., "10.50" or "10")
+ * @param precision - The contract precision (0-2 decimal places)
+ * @returns The scaled quantity as bigint (e.g., 1050n for "10.50" with precision 2)
+ *
+ * @example
+ * fixedPointToQuantity("10.50", 2) // Returns 1050n
+ * fixedPointToQuantity("10", 0)    // Returns 10n
+ */
+export function fixedPointToQuantity(fixedPoint: string, precision: number): bigint {
+  const trimmed = fixedPoint.trim();
+  const parts = trimmed.split('.');
+  const wholePart = parts[0] ?? '0';
+  const fractionalPart = parts[1] ?? '0';
+  const multiplier = BigInt(10 ** precision);
+
+  // Truncate or pad fractional part to match precision
+  const truncatedFractional = fractionalPart.slice(0, precision).padEnd(precision, '0');
+
+  return BigInt(wholePart) * multiplier + BigInt(truncatedFractional);
+}
+
+/**
+ * Converts a scaled bigint quantity to a fixed-point string.
+ * Per Kalshi docs, fixed-point strings always emit 2 decimal places.
+ * @param quantity - The scaled quantity as bigint (e.g., 1050n for 10.50 contracts with precision 2)
+ * @param precision - The contract precision (0-2 decimal places)
+ * @returns The fixed-point string (e.g., "10.50")
+ *
+ * @example
+ * quantityToFixedPoint(1050n, 2) // Returns "10.50"
+ * quantityToFixedPoint(10n, 0)   // Returns "10.00"
+ */
+export function quantityToFixedPoint(quantity: bigint, precision: number): string {
+  const divisor = BigInt(10 ** precision);
+  const wholePart = quantity / divisor;
+  const fractionalPart = quantity % divisor;
+
+  // Always emit 2 decimal places as per Kalshi spec
+  const fractionalStr = fractionalPart.toString().padStart(precision, '0');
+  const paddedFractional = fractionalStr.padEnd(2, '0');
+
+  return `${wholePart.toString()}.${paddedFractional}`;
+}
+
 export const BIGINT_FIELDS = [
   'uusdcAmount',
   'newBalanceUusdc',
@@ -155,4 +202,10 @@ export const BIGINT_FIELDS = [
   'payoutUusdc',
   'totalUusdc',
   'feeUusdc',
+  'totalDeposits',
+  'totalWithdrawals',
+  'realizedPnl',
+  'unrealizedPnl',
+  'netPnl',
+  'totalFeesPaid',
 ];
