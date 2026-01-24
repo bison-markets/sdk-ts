@@ -110,7 +110,7 @@ export function parseBigIntFields(obj: any, fields: string[]): any {
 
 /**
  * Format µUSDC amount for display as USDC
- * @param uusdc Amount in µUSDC as BigInt, string, or number
+ * @param uusdc Amount in µUSDC as BigInt or string
  * @param decimals Number of decimal places to show (default: 2)
  * @returns Formatted USDC string (e.g., "1.50")
  *
@@ -118,9 +118,8 @@ export function parseBigIntFields(obj: any, fields: string[]): any {
  * formatUusdcDisplay(1500000n) // Returns "1.50"
  * formatUusdcDisplay("1500000", 6) // Returns "1.500000"
  */
-export function formatUusdcDisplay(uusdc: bigint | string | number, decimals = 2): string {
-  const amount =
-    typeof uusdc === 'string' ? BigInt(uusdc) : typeof uusdc === 'number' ? BigInt(uusdc) : uusdc;
+export function formatUusdcDisplay(uusdc: bigint | string, decimals = 2): string {
+  const amount = typeof uusdc === 'string' ? BigInt(uusdc) : uusdc;
   const usdc = Number(amount) / 1_000_000;
   return usdc.toFixed(decimals);
 }
@@ -130,16 +129,16 @@ export function formatUusdcDisplay(uusdc: bigint | string | number, decimals = 2
  */
 
 /**
- * Converts a fixed-point string to a scaled bigint quantity.
+ * Converts a fixed-point string to a scaled bigint ccontracts.
  * @param fixedPoint - The fixed-point string (e.g., "10.50" or "10")
  * @param precision - The contract precision (0-2 decimal places)
- * @returns The scaled quantity as bigint (e.g., 1050n for "10.50" with precision 2)
+ * @returns The scaled ccontracts as bigint (e.g., 1050n for "10.50" with precision 2)
  *
  * @example
- * fixedPointToQuantity("10.50", 2) // Returns 1050n
- * fixedPointToQuantity("10", 0)    // Returns 10n
+ * contractsToCcontracts("10.50", 2) // Returns 1050n
+ * contractsToCcontracts("10", 0)    // Returns 10n
  */
-export function fixedPointToQuantity(fixedPoint: string, precision: number): bigint {
+export function contractsToCcontracts(fixedPoint: string, precision: number): bigint {
   const trimmed = fixedPoint.trim();
   const parts = trimmed.split('.');
   const wholePart = parts[0] ?? '0';
@@ -153,20 +152,20 @@ export function fixedPointToQuantity(fixedPoint: string, precision: number): big
 }
 
 /**
- * Converts a scaled bigint quantity to a fixed-point string.
+ * Converts a scaled bigint ccontracts to a fixed-point string.
  * Per Kalshi docs, fixed-point strings always emit 2 decimal places.
- * @param quantity - The scaled quantity as bigint (e.g., 1050n for 10.50 contracts with precision 2)
+ * @param ccontracts - The scaled ccontracts as bigint (e.g., 1050n for 10.50 contracts with precision 2)
  * @param precision - The contract precision (0-2 decimal places)
  * @returns The fixed-point string (e.g., "10.50")
  *
  * @example
- * quantityToFixedPoint(1050n, 2) // Returns "10.50"
- * quantityToFixedPoint(10n, 0)   // Returns "10.00"
+ * ccontractsToContracts(1050n, 2) // Returns "10.50"
+ * ccontractsToContracts(10n, 0)   // Returns "10.00"
  */
-export function quantityToFixedPoint(quantity: bigint, precision: number): string {
+export function ccontractsToContracts(ccontracts: bigint, precision: number): string {
   const divisor = BigInt(10 ** precision);
-  const wholePart = quantity / divisor;
-  const fractionalPart = quantity % divisor;
+  const wholePart = ccontracts / divisor;
+  const fractionalPart = ccontracts % divisor;
 
   // Always emit 2 decimal places as per Kalshi spec
   const fractionalStr = fractionalPart.toString().padStart(precision, '0');
@@ -179,9 +178,9 @@ export const BIGINT_FIELDS = [
   'uusdcAmount',
   'newBalanceUusdc',
   'priceUusdc',
-  'number',
-  'requestedQuantity',
-  'filledQuantity',
+  'ccontracts',
+  'requestedCcontracts',
+  'filledCcontracts',
   'filledUusdc',
   'amountUusdc',
   'claimedAmountUusdc',
@@ -198,7 +197,6 @@ export const BIGINT_FIELDS = [
   'grossBaseFeeUusdc',
   'bisonFeeCutBps',
   'maxWithdrawAmount',
-  'quantity',
   'payoutUusdc',
   'totalUusdc',
   'feeUusdc',

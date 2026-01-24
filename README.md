@@ -47,15 +47,28 @@ const txHash = await client.executeDepositFlow({
   publicClient,
   userAddress: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266',
   chain: 'base', // Addresses are auto-resolved from /info endpoint
-  amountUusdc: 100_000_000, // 100 USDC
+  amountUusdc: '100000000', // 100 USDC
 });
 
 console.log('Deposited! Transaction:', txHash);
 
+// Place a limit order for 10.5 contracts (1050 ccontracts) at $0.75
+await client.placeOrder({
+  chain: 'base',
+  marketId: 'PRES-2024',
+  ccontracts: '1050', // 10.5 contracts * 100
+  priceUusdc: '750000',
+  action: 'buy',
+  side: 'yes',
+  userAddress: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266',
+  signature: '0x...',
+  expiry: 1234567890,
+});
+
 // Start listening for account events
 const disconnect = client.listen('0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266', (event) => {
   if (event.type === 'usdc_deposited') {
-    console.log('USDC deposit confirmed:', event.uusdcAmount / 1_000_000, 'USDC');
+    console.log('USDC deposit confirmed:', BigInt(event.uusdcAmount) / 1_000_000n, 'USDC');
   } else if (event.type === 'order_filled') {
     console.log('Order filled:', event.orderId);
   }

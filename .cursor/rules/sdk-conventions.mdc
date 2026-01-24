@@ -12,26 +12,26 @@ When calling SDK methods, use these formats:
 
 | Parameter Type | Format | Example | Description |
 |---------------|--------|---------|-------------|
-| Contract quantity (`number`) | **Fixed-point string** | `"10.50"` | Human-readable format with decimals |
+| Contract quantity (`ccontracts`) | **Integer string** | `"1050"` | Internal units (1 contract = 100 ccontracts) |
 | µUSDC amount (`priceUusdc`, `amountUusdc`) | **Integer string** | `"750000"` | Micro-USDC (1 USDC = 1,000,000 µUSDC) |
 
 ### Examples
 
 ```typescript
-// Place an order for 10.5 contracts at $0.75 each
+// Place an order for 10.5 contracts (1050 ccontracts) at $0.75 each
 await client.placeOrder({
   marketId: 'PRES-2024',
-  number: '10.50',        // Fixed-point string
+  ccontracts: '1050',     // Integer string (10.5 * 100)
   priceUusdc: '750000',   // Integer string (0.75 * 1,000,000)
   action: 'buy',
   side: 'yes',
   // ...
 });
 
-// Mint 5 position tokens
+// Mint 5 contracts (500 ccontracts)
 await client.executeMintFlow({
   marketId: 'PRES-2024',
-  number: '5',            // Fixed-point string (can omit .00)
+  ccontracts: '500',      // Integer string (5 * 100)
   side: 'yes',
   // ...
 });
@@ -50,13 +50,13 @@ API responses contain **integer strings** (scaled values) for all bigint fields:
 ```typescript
 // Order response
 {
-  requestedQuantity: '1050',  // Scaled value (10.50 * 100 for precision 2)
+  requestedCcontracts: '1050',  // Scaled value (10.50 * 100 for precision 2)
   priceUusdc: '750000',       // µUSDC value
 }
 
 // Position response
 {
-  quantity: '1050',           // Scaled value
+  ccontracts: '1050',         // Scaled value
 }
 ```
 
@@ -67,18 +67,18 @@ The SDK automatically converts these to `bigint` for convenient TypeScript usage
 For advanced use cases, conversion utilities are exported:
 
 ```typescript
-import { 
-  fixedPointToQuantity, 
-  quantityToFixedPoint,
+import {
+  contractsToCcontracts,
+  ccontractsToContracts,
   usdcToUusdc,
   uusdcToUsdc,
 } from '@bison-markets/sdk-ts';
 
 // Convert fixed-point to scaled quantity
-const scaled = fixedPointToQuantity('10.50', 2); // 1050n
+const scaled = contractsToCcontracts('10.50', 2); // 1050n
 
 // Convert scaled quantity back to fixed-point
-const display = quantityToFixedPoint(1050n, 2); // '10.50'
+const display = ccontractsToContracts(1050n, 2); // '10.50'
 
 // Convert USDC to µUSDC
 const microUsdc = usdcToUusdc('1.5'); // 1500000n
@@ -89,10 +89,10 @@ const usdc = uusdcToUsdc(1500000n); // '1.500000'
 
 ## Why These Conventions?
 
-**Fixed-point strings for input:**
-- Human-readable and intuitive
-- Matches user expectations (e.g., "I want 10.5 contracts")
-- API validates precision against market requirements
+**Integer strings for input:**
+- Unambiguous scaled quantities
+- Matches API expectations for contract and µUSDC amounts
+- Avoids fixed-point parsing at API boundaries
 
 **Integer strings for output:**
 - Represents true internal scaled values

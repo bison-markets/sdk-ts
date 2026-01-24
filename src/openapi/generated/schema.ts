@@ -117,10 +117,10 @@ export interface paths {
                          */
                         marketId: string;
                         /**
-                         * @description Number of contracts as a string (e.g., "10", "10.5", "10.50"). Must match the market's contract precision.
-                         * @example 10.50
+                         * @description Number of ccontracts as a positive integer string (scaled by market precision). For precision 2, 1 contract = 100 ccontracts.
+                         * @example 1050
                          */
-                        number: string;
+                        ccontracts: string;
                         /**
                          * @description Action to execute; one of: mint (mint tokens), burn (burn tokens)
                          * @example mint
@@ -155,6 +155,28 @@ export interface paths {
                             signature: string;
                             /** @description Unix timestamp when authorization expires */
                             expiresAt: number;
+                        };
+                    };
+                };
+                /** @description Invalid request (validation error) */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Market not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
                         };
                     };
                 };
@@ -225,7 +247,7 @@ export interface paths {
                             /** @description Unix timestamp when authorization expires */
                             expiresAt: number;
                             /** @description Total amount available to withdraw in µUSDC */
-                            maxWithdrawAmount: number;
+                            maxWithdrawAmount: string;
                         };
                     };
                 };
@@ -282,7 +304,7 @@ export interface paths {
                         /** @enum {string} */
                         chain: "base" | "bsc";
                         /**
-                         * @description Amount to withdraw in µUSDC (micro-USDC, 1 µUSDC = 0.000001 USD). Must be a positive integer string.
+                         * @description Amount to withdraw in µUSDC (micro-USDC, 1 µUSDC = 0.000001 USD). Must be positive integer string.
                          * @example 1000000
                          */
                         amountUusdc: string;
@@ -300,7 +322,7 @@ export interface paths {
                     content: {
                         "application/json": {
                             withdrawId: string;
-                            amountUusdc: number;
+                            amountUusdc: string;
                             /** @enum {string} */
                             status: "pending" | "fill-locked" | "unclaimed" | "claimed";
                             scheduledAt: string;
@@ -366,19 +388,19 @@ export interface paths {
                                 id: string;
                                 /** @enum {string} */
                                 chain: "base" | "bsc";
-                                amountUusdc: number;
-                                claimedAmountUusdc: number;
-                                remainingUusdc: number;
+                                amountUusdc: string;
+                                claimedAmountUusdc: string;
+                                remainingUusdc: string;
                                 /** @enum {string} */
                                 status: "pending" | "fill-locked" | "unclaimed" | "claimed";
                                 scheduledAt: string;
                                 lockedAt: string | null;
                                 unclaimedAt: string | null;
                             }[];
-                            totalPending: number;
-                            totalFillLocked: number;
-                            totalUnclaimed: number;
-                            totalAvailableUnclaimed: number;
+                            totalPending: string;
+                            totalFillLocked: string;
+                            totalUnclaimed: string;
+                            totalAvailableUnclaimed: string;
                         };
                     };
                 };
@@ -432,7 +454,7 @@ export interface paths {
                             /** @description User wallet address */
                             userAddress: string;
                             /** @description Deposited USDC balance in µUSDC */
-                            depositedBalanceUusdc: number;
+                            depositedBalanceUusdc: string;
                         };
                     };
                 };
@@ -553,10 +575,10 @@ export interface paths {
                                 side: "yes" | "no";
                                 /** @enum {string} */
                                 action: "buy" | "sell";
-                                quantity: number;
-                                priceUusdc: number;
-                                totalUusdc: number;
-                                feeUusdc: number;
+                                ccontracts: string;
+                                priceUusdc: string;
+                                totalUusdc: string;
+                                feeUusdc: string;
                                 timestamp: number;
                             } | {
                                 /** @enum {string} */
@@ -565,8 +587,8 @@ export interface paths {
                                 marketId: string;
                                 /** @enum {string} */
                                 side: "yes" | "no";
-                                quantity: number;
-                                payoutUusdc: number;
+                                ccontracts: string;
+                                payoutUusdc: string;
                                 /** @enum {string} */
                                 result: "yes" | "no";
                                 timestamp: number;
@@ -576,14 +598,14 @@ export interface paths {
                                 id: string;
                                 chain: string;
                                 txHash: string;
-                                amountUusdc: number;
+                                amountUusdc: string;
                                 timestamp: number;
                             } | {
                                 /** @enum {string} */
                                 type: "withdraw";
                                 id: string;
                                 chain: string;
-                                amountUusdc: number;
+                                amountUusdc: string;
                                 /** @enum {string} */
                                 status: "pending" | "fill-locked" | "unclaimed" | "claimed";
                                 timestamp: number;
@@ -651,17 +673,17 @@ export interface paths {
                     content: {
                         "application/json": {
                             /** @description Total deposits in µUSDC */
-                            totalDeposits: number;
+                            totalDeposits: string;
                             /** @description Total withdrawals in µUSDC */
-                            totalWithdrawals: number;
+                            totalWithdrawals: string;
                             /** @description Realized PNL in µUSDC */
-                            realizedPnl: number;
+                            realizedPnl: string;
                             /** @description Unrealized PNL in µUSDC (estimated) */
-                            unrealizedPnl: number;
+                            unrealizedPnl: string;
                             /** @description Net PNL (realized + unrealized) in µUSDC */
-                            netPnl: number;
+                            netPnl: string;
                             /** @description Total fees paid in µUSDC */
-                            totalFeesPaid: number;
+                            totalFeesPaid: string;
                             timeSeries?: {
                                 timestamp: number;
                                 cumulativePnl: number;
@@ -723,11 +745,11 @@ export interface paths {
                             /** @description Dev account email */
                             email: string;
                             /** @description Gross fee in basis points (100 = 1%) */
-                            grossFeeBps: number;
+                            grossFeeBps: string;
                             /** @description Gross base fee per trade in µUSDC */
-                            grossBaseFeeUusdc: number;
+                            grossBaseFeeUusdc: string;
                             /** @description Bison fee cut in basis points (100 = 1% of gross fee) */
-                            bisonFeeCutBps: number;
+                            bisonFeeCutBps: string;
                             /** @description Chain for fee payouts */
                             payoutChain: string;
                             /** @description Address receiving fee payouts */
@@ -789,11 +811,11 @@ export interface paths {
                             /** @description Dev account name */
                             name: string;
                             /** @description Fees pending confirmation (µUSDC) */
-                            pendingFeesUusdc: number;
+                            pendingFeesUusdc: string;
                             /** @description Fees locked for payout (µUSDC) */
-                            lockedFeesUusdc: number;
+                            lockedFeesUusdc: string;
                             /** @description Fees available to claim (µUSDC) */
-                            unclaimedFeesUusdc: number;
+                            unclaimedFeesUusdc: string;
                             /** @description Chain for fee payouts */
                             payoutChain: string;
                             /** @description Address receiving fee payouts */
@@ -857,7 +879,7 @@ export interface paths {
                             /** @description Unix timestamp when authorization expires */
                             expiresAt: number;
                             /** @description Fee amount to claim in µUSDC */
-                            amount: number;
+                            amount: string;
                             /** @description Chain to claim on */
                             chain: string;
                             /** @description Address receiving the payout */
@@ -929,7 +951,7 @@ export interface paths {
                             claims: {
                                 id: string;
                                 chain: string;
-                                amountUusdc: number;
+                                amountUusdc: string;
                                 payoutAddress: string;
                                 claimedAt: string;
                             }[];
@@ -1020,6 +1042,28 @@ export interface paths {
                         };
                     };
                 };
+                /** @description Bad request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
                 /** @description Internal server error */
                 500: {
                     headers: {
@@ -1095,10 +1139,10 @@ export interface paths {
                                 side: "yes" | "no";
                                 /** @enum {string} */
                                 action: "buy" | "sell";
-                                requestedQuantity: number;
-                                filledQuantity: number;
-                                filledUusdc: number;
-                                priceUusdc: number;
+                                requestedCcontracts: string;
+                                filledCcontracts: string;
+                                filledUusdc: string;
+                                priceUusdc: string;
                                 chain: string;
                                 /** @enum {string} */
                                 status: "pending" | "filled" | "cancelled";
@@ -1177,7 +1221,7 @@ export interface paths {
                                 marketId: string;
                                 /** @enum {string} */
                                 side: "yes" | "no";
-                                quantity: number;
+                                ccontracts: string;
                                 createdAt: number;
                                 updatedAt: number;
                             }[];
@@ -1252,17 +1296,28 @@ export interface paths {
                                 open_time?: string;
                                 close_time?: string;
                                 expiration_time?: string;
-                                yes_bid_uusdc?: number;
-                                yes_ask_uusdc?: number;
-                                no_bid_uusdc?: number;
-                                no_ask_uusdc?: number;
-                                last_price_uusdc?: number;
+                                yes_bid_uusdc?: string;
+                                yes_ask_uusdc?: string;
+                                no_bid_uusdc?: string;
+                                no_ask_uusdc?: string;
+                                last_price_uusdc?: string;
                             }[];
                         };
                     };
                 };
                 /** @description Bad request */
                 400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Event not found */
+                404: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -1474,12 +1529,12 @@ export interface paths {
                          */
                         marketId: string;
                         /**
-                         * @description Number of contracts as a string (e.g., "10", "10.5", "10.50"). Will be scaled based on market precision.
-                         * @example 10.50
+                         * @description Number of ccontracts as a positive integer string (1 contract = 100 ccontracts).
+                         * @example 1050
                          */
-                        number: string;
+                        ccontracts: string;
                         /**
-                         * @description Price per contract in µUSDC (micro-USDC, 1 µUSDC = 0.000001 USD). Must be a positive integer string.
+                         * @description Price per contract in µUSDC (micro-USDC, 1 µUSDC = 0.000001 USD). Must be positive integer string.
                          * @example 750000
                          */
                         priceUusdc: string;

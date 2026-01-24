@@ -4,7 +4,7 @@ import type { WalletClient, PublicClient } from 'viem';
 import { maxUint256 } from 'viem';
 import { signTypedData } from 'viem/accounts';
 import { VAULT_ABI, ERC20_ABI } from './constants';
-import { parseBigIntFields, BIGINT_FIELDS } from './bigint';
+import { parseBigIntFields, BIGINT_FIELDS } from './conversions';
 
 export interface DevFlags {
   privateKey: `0x${string}`;
@@ -23,7 +23,7 @@ export interface BisonOrderEvent {
   marketId: string;
   action: 'buy' | 'sell';
   side: 'yes' | 'no';
-  number: bigint; // Changed to bigint for precision
+  ccontracts: bigint; // Changed to bigint for precision
   priceUusdc: bigint; // Changed to bigint for precision
 }
 
@@ -45,7 +45,7 @@ export interface BisonPositionEvent {
   userAddress: string;
   marketId: string;
   side: 'yes' | 'no';
-  number: bigint; // Changed to bigint for precision
+  ccontracts: bigint; // Changed to bigint for precision
 }
 
 export type BisonEvent = BisonOrderEvent | BisonMarketEvent | BisonUSDCEvent | BisonPositionEvent;
@@ -64,16 +64,16 @@ export type GetEventMetadataResponse =
 /**
  * Request to get authorization for minting/burning position tokens
  *
- * @property number - Number of contracts as a fixed-point string (e.g., "10.50")
+ * @property ccontracts - Number of ccontracts as an integer string (e.g., "1050")
  */
 export type GetTokenAuthorizationRequest = Omit<
   NonNullable<
     OpenAPIPaths['/get-token-authorization']['post']['requestBody']
   >['content']['application/json'],
-  'number'
+  'ccontracts'
 > & {
-  /** Number of contracts as a fixed-point string (e.g., "10.50") */
-  number: string;
+  /** Number of ccontracts as an integer string (e.g., "1050") */
+  ccontracts: string;
 };
 
 export type GetTokenAuthorizationResponse =
@@ -89,17 +89,17 @@ export type GetWithdrawAuthorizationResponse =
 /**
  * Request to place a limit order on Kalshi
  *
- * @property number - Number of contracts as a fixed-point string (e.g., "10", "10.5", "10.50")
+ * @property ccontracts - Number of ccontracts as an integer string (e.g., "1050")
  * @property priceUusdc - Price per contract in µUSDC as an integer string (e.g., "750000" for $0.75)
  */
 export type PlaceOrderRequest = Omit<
   NonNullable<
     OpenAPIPaths['/kalshi/order/limit']['post']['requestBody']
   >['content']['application/json'],
-  'number' | 'priceUusdc'
+  'ccontracts' | 'priceUusdc'
 > & {
-  /** Number of contracts as a fixed-point string (e.g., "10.50") */
-  number: string;
+  /** Number of ccontracts as an integer string (e.g., "1050") */
+  ccontracts: string;
   /** Price per contract in µUSDC as an integer string (e.g., "750000") */
   priceUusdc: string;
 };
@@ -214,18 +214,18 @@ export interface ChainInfo {
 
 export interface KalshiTickerUpdate {
   market_ticker: string;
-  yes_bid_uusdc?: number;
-  yes_ask_uusdc?: number;
-  no_bid_uusdc?: number;
-  no_ask_uusdc?: number;
-  last_price_uusdc?: number;
+  yes_bid_uusdc?: string;
+  yes_ask_uusdc?: string;
+  no_bid_uusdc?: string;
+  no_ask_uusdc?: string;
+  last_price_uusdc?: string;
   volume?: number;
   open_interest?: number;
 }
 
 export interface OrderbookLevel {
-  price_uusdc: number;
-  quantity: number;
+  price_uusdc: string;
+  ccontracts: string;
 }
 
 export interface OrderbookSnapshot {
@@ -238,8 +238,8 @@ export interface OrderbookSnapshot {
 export interface OrderbookDelta {
   type: 'orderbook_delta';
   market_ticker: string;
-  price_uusdc: number;
-  delta: number;
+  price_uusdc: string;
+  delta: string;
   side: 'yes' | 'no';
 }
 
@@ -1005,7 +1005,7 @@ export class BisonClient {
 
   /**
    * Execute a complete buy flow: sign order authorization and place order
-   * @param params.number - Number of contracts as a fixed-point string (e.g., "10.50")
+   * @param params.ccontracts - Number of ccontracts as an integer string (e.g., "1050")
    * @param params.priceUusdc - Price per contract in µUSDC as an integer string (e.g., "750000")
    */
   async executeBuyFlow(params: {
@@ -1015,8 +1015,8 @@ export class BisonClient {
     chain: SupportedChain;
     marketId: string;
     side: 'yes' | 'no';
-    /** Number of contracts as a fixed-point string (e.g., "10.50") */
-    number: string;
+    /** Number of ccontracts as an integer string (e.g., "1050") */
+    ccontracts: string;
     /** Price per contract in µUSDC as an integer string (e.g., "750000") */
     priceUusdc: string;
     onEvent?: (event: BisonEvent) => void;
@@ -1028,7 +1028,7 @@ export class BisonClient {
       chain,
       marketId,
       side,
-      number,
+      ccontracts,
       priceUusdc,
       onEvent,
       onError,
@@ -1051,7 +1051,7 @@ export class BisonClient {
         { name: 'marketId', type: 'string' },
         { name: 'action', type: 'string' },
         { name: 'side', type: 'string' },
-        { name: 'number', type: 'uint256' },
+        { name: 'ccontracts', type: 'uint256' },
         { name: 'priceUusdc', type: 'uint256' },
         { name: 'expiry', type: 'uint256' },
       ],
@@ -1061,7 +1061,7 @@ export class BisonClient {
       marketId,
       action: 'buy',
       side,
-      number: BigInt(number),
+      ccontracts: BigInt(ccontracts),
       priceUusdc: BigInt(priceUusdc),
       expiry: BigInt(expiry),
     };
@@ -1077,7 +1077,7 @@ export class BisonClient {
     const orderResult = await this.placeOrder({
       chain: chain as 'base',
       marketId,
-      number,
+      ccontracts,
       priceUusdc,
       action: 'buy',
       side,
@@ -1105,7 +1105,7 @@ export class BisonClient {
 
   /**
    * Execute a complete sell flow: sign order authorization and place order
-   * @param params.number - Number of contracts as a fixed-point string (e.g., "10.50")
+   * @param params.ccontracts - Number of ccontracts as an integer string (e.g., "1050")
    * @param params.priceUusdc - Price per contract in µUSDC as an integer string (e.g., "750000")
    */
   async executeSellFlow(params: {
@@ -1115,8 +1115,8 @@ export class BisonClient {
     chain: SupportedChain;
     marketId: string;
     side: 'yes' | 'no';
-    /** Number of contracts as a fixed-point string (e.g., "10.50") */
-    number: string;
+    /** Number of ccontracts as an integer string (e.g., "1050") */
+    ccontracts: string;
     /** Price per contract in µUSDC as an integer string (e.g., "750000") */
     priceUusdc: string;
     onEvent?: (event: BisonEvent) => void;
@@ -1128,7 +1128,7 @@ export class BisonClient {
       chain,
       marketId,
       side,
-      number,
+      ccontracts,
       priceUusdc,
       onEvent,
       onError,
@@ -1151,7 +1151,7 @@ export class BisonClient {
         { name: 'marketId', type: 'string' },
         { name: 'action', type: 'string' },
         { name: 'side', type: 'string' },
-        { name: 'number', type: 'uint256' },
+        { name: 'ccontracts', type: 'uint256' },
         { name: 'priceUusdc', type: 'uint256' },
         { name: 'expiry', type: 'uint256' },
       ],
@@ -1161,7 +1161,7 @@ export class BisonClient {
       marketId,
       action: 'sell',
       side,
-      number: BigInt(number),
+      ccontracts: BigInt(ccontracts),
       priceUusdc: BigInt(priceUusdc),
       expiry: BigInt(expiry),
     };
@@ -1177,7 +1177,7 @@ export class BisonClient {
     const orderResult = await this.placeOrder({
       chain: chain as 'base',
       marketId,
-      number,
+      ccontracts,
       priceUusdc,
       action: 'sell',
       side,
@@ -1262,7 +1262,7 @@ export class BisonClient {
 
   /**
    * Execute a complete mint flow: get authorization and mint position tokens
-   * @param params.number - Number of contracts as a fixed-point string (e.g., "10.50")
+   * @param params.ccontracts - Number of ccontracts as an integer string (e.g., "1050")
    */
   async executeMintFlow(params: {
     walletClient: WalletClient;
@@ -1271,17 +1271,17 @@ export class BisonClient {
     chain: SupportedChain;
     marketId: string;
     side: 'yes' | 'no';
-    /** Number of contracts as a fixed-point string (e.g., "10.50") */
-    number: string;
+    /** Number of ccontracts as an integer string (e.g., "1050") */
+    ccontracts: string;
   }): Promise<{ txHash: `0x${string}` }> {
-    const { walletClient, publicClient, userAddress, chain, marketId, side, number } = params;
+    const { walletClient, publicClient, userAddress, chain, marketId, side, ccontracts } = params;
 
     const vaultAddress = (await this.getChainInfo(chain)).vaultAddress;
 
     const auth = await this.getTokenAuthorization({
       chain: chain as 'base',
       marketId,
-      number,
+      ccontracts,
       action: 'mint',
       side,
       userAddress,
@@ -1295,7 +1295,7 @@ export class BisonClient {
         auth.uuid,
         marketId,
         side === 'yes',
-        BigInt(number),
+        BigInt(ccontracts),
         BigInt(auth.expiresAt),
         auth.signature as `0x${string}`,
       ],
@@ -1312,7 +1312,7 @@ export class BisonClient {
 
   /**
    * Execute a complete burn flow: get authorization and burn position tokens
-   * @param params.number - Number of contracts as a fixed-point string (e.g., "10.50")
+   * @param params.ccontracts - Number of ccontracts as an integer string (e.g., "1050")
    */
   async executeBurnFlow(params: {
     walletClient: WalletClient;
@@ -1321,17 +1321,17 @@ export class BisonClient {
     chain: SupportedChain;
     marketId: string;
     side: 'yes' | 'no';
-    /** Number of contracts as a fixed-point string (e.g., "10.50") */
-    number: string;
+    /** Number of ccontracts as an integer string (e.g., "1050") */
+    ccontracts: string;
   }): Promise<{ txHash: `0x${string}` }> {
-    const { walletClient, publicClient, userAddress, chain, marketId, side, number } = params;
+    const { walletClient, publicClient, userAddress, chain, marketId, side, ccontracts } = params;
 
     const vaultAddress = (await this.getChainInfo(chain)).vaultAddress;
 
     const auth = await this.getTokenAuthorization({
       chain: chain as 'base',
       marketId,
-      number,
+      ccontracts,
       action: 'burn',
       side,
       userAddress,
@@ -1346,7 +1346,7 @@ export class BisonClient {
         marketId,
         side === 'yes',
         userAddress,
-        BigInt(number),
+        BigInt(ccontracts),
         BigInt(auth.expiresAt),
         auth.signature as `0x${string}`,
       ],
@@ -1541,7 +1541,7 @@ export class BisonClient {
       expiresAt,
     });
 
-    if (maxWithdrawAmount === 0) {
+    if (maxWithdrawAmount === '0') {
       throw new Error('No unclaimed withdrawals available');
     }
 
@@ -1587,7 +1587,7 @@ export class BisonClient {
 
     console.log('Fee authorization received:', { amount, chain, signerAddress });
 
-    if (amount === 0) {
+    if (amount === '0') {
       throw new Error('No unclaimed fees available');
     }
 
